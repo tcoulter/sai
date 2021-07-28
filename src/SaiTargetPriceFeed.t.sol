@@ -2,7 +2,7 @@ pragma solidity >=0.8.0;
 
 import "./ds-test/test.sol";
 import "./ds-math/math.sol";
-import './vox.sol';
+import './SaiTargetPriceFeed.sol';
 
 contract TestWarp is DSNote {
     uint  _era;

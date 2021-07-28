@@ -25,8 +25,7 @@ import "./ds-value/value.sol";
 
 import "../node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-
-import "./vox.sol";
+import "./SaiTargetPriceFeed.sol";
 
 contract SaiTubEvents {
     event LogNewCup(address indexed lad, bytes32 cup);

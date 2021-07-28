@@ -25,7 +25,7 @@ import "./ds-value/value.sol";
 
 import "../node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import "./SaiTargetPriceFeed.sol";
+import "./TargetPriceFeed.sol";
 
 contract SaiTubEvents {
     event LogNewCup(address indexed lad, bytes32 cup);
@@ -40,7 +40,7 @@ contract SaiTub is DSThing, SaiTubEvents {
 
     DSToken  public  gov;  // Governance token
 
-    SaiTargetPriceFeed  public  vox;  // Target price feed
+    TargetPriceFeed  public  vox;  // Target price feed
     DSValue             public  pip;  // Reference price feed
     DSValue             public  pep;  // Governance price feed
 
@@ -110,7 +110,7 @@ contract SaiTub is DSThing, SaiTubEvents {
         DSToken  gov_,
         DSValue  pip_,
         DSValue  pep_,
-        SaiTargetPriceFeed   vox_,
+        TargetPriceFeed   vox_,
         address  pit_
     ) {
         gem = gem_;
@@ -162,7 +162,7 @@ contract SaiTub is DSThing, SaiTubEvents {
     function setPep(DSValue pep_) public note auth {
         pep = pep_;
     }
-    function setVox(SaiTargetPriceFeed vox_) public note auth {
+    function setVox(TargetPriceFeed vox_) public note auth {
         vox = vox_;
     }
 

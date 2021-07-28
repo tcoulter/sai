@@ -25,7 +25,7 @@ import "./tap.sol";
 import "../node_modules/@openzeppelin/contracts/token/ERC721/ERC721.sol";
 
 contract SaiTop is DSThing {
-    SaiTargetPriceFeed   public  vox;
+    TargetPriceFeed   public  vox;
     SaiTub   public  tub;
     SaiTap   public  tap;
 

@@ -21,7 +21,7 @@ pragma solidity >=0.8.0;
 
 import "./ds-thing/thing.sol";
 
-contract SaiTargetPriceFeed is DSThing {
+contract TargetPriceFeed is DSThing {
     uint256  _targetPrice;
     uint256  _rateOfChangePerSecond;
 

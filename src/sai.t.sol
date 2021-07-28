@@ -12,7 +12,7 @@ import './weth9.sol';
 import './mom.sol';
 import './fab.sol';
 import './pit.sol';
-import './SaiTargetPriceFeed.sol';
+import './TargetPriceFeed.sol';
 
 import "../node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
@@ -41,7 +41,7 @@ contract DevTub is SaiTub, TestWarp {
         DSToken  gov_,
         DSValue  pip_,
         DSValue  pep_,
-        SaiTargetPriceFeed   vox_,
+        TargetPriceFeed   vox_,
         address  pit_
     ) SaiTub(sai_, sin_, skr_, gem_, gov_, pip_, pep_, vox_, pit_) TestWarp() {}
 
@@ -58,10 +58,10 @@ contract DevTop is SaiTop, TestWarp {
     }
 }
 
-contract DevVox is SaiTargetPriceFeed, TestWarp {
-    constructor(uint par_) SaiTargetPriceFeed(par_) TestWarp() {}
+contract DevVox is TargetPriceFeed, TestWarp {
+    constructor(uint par_) TargetPriceFeed(par_) TestWarp() {}
 
-    function era() public view override(SaiTargetPriceFeed, TestWarp) returns (uint256) {
+    function era() public view override(TargetPriceFeed, TestWarp) returns (uint256) {
       return super.era();
     }
 }
@@ -74,7 +74,7 @@ contract DevVoxFab {
 }
 
 contract DevTubFab {
-    function newTub(DSToken sai, DSToken sin, DSToken skr, DSToken gem, DSToken gov, DSValue pip, DSValue pep, SaiTargetPriceFeed vox, address pit) public returns (DevTub tub) {
+    function newTub(DSToken sai, DSToken sin, DSToken skr, DSToken gem, DSToken gov, DSValue pip, DSValue pep, TargetPriceFeed vox, address pit) public returns (DevTub tub) {
         tub = new DevTub(sai, sin, skr, IERC20(address(gem)), gov, pip, pep, vox, pit);
         tub.setOwner(msg.sender);
     }

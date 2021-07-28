@@ -2,7 +2,7 @@ pragma solidity >=0.8.0;
 
 import "./ds-test/test.sol";
 import "./ds-math/math.sol";
-import './SaiTargetPriceFeed.sol';
+import './TargetPriceFeed.sol';
 
 contract TestWarp is DSNote {
     uint  _era;
@@ -20,23 +20,23 @@ contract TestWarp is DSNote {
     }
 }
 
-contract DevVox is SaiTargetPriceFeed, TestWarp {
-    constructor(uint par_) SaiTargetPriceFeed(par_) TestWarp() {}
+contract DevTargetPriceFeed is TargetPriceFeed, TestWarp {
+    constructor(uint par_) TargetPriceFeed(par_) TestWarp() {}
 
-    function era() public view override(SaiTargetPriceFeed, TestWarp) returns (uint256) {
+    function era() public view override(TargetPriceFeed, TestWarp) returns (uint256) {
       return super.era();
     }
 }
 
 contract VoxTest is DSTest, DSMath {
-    DevVox vox;
+    DevTargetPriceFeed vox;
 
     function wad(uint256 ray_) internal pure returns (uint256) {
         return wdiv(ray_, RAY);
     }
 
     function setUp() public {
-        vox = new DevVox(RAY);
+        vox = new DevTargetPriceFeed(RAY);
     }
     function testVoxDefaultPar() public {
         assertEq(vox.targetPrice(), RAY);
@@ -70,13 +70,13 @@ contract VoxTest is DSTest, DSMath {
 }
 
 contract VoxHowTest is DSTest, DSMath {
-    DevVox vox;
+    DevTargetPriceFeed vox;
 
     function ray(uint256 wad_) internal pure returns (uint256) {
         return wad_ * 10 ** 9;
     }
     function setUp() public {
-        vox = new DevVox(ray(0.75 ether));
+        vox = new DevTargetPriceFeed(ray(0.75 ether));
         vox.tune(ray(0.002 ether));
     }
     function test_price_too_low() public {

@@ -26,7 +26,7 @@ contract SaiTap is DSThing {
     DSToken  public  sin;
     DSToken  public  skr;
 
-    TargetPriceFeed   public  vox;
+    TargetPriceFeed   public  targetPriceFeed;
     SaiTub   public  tub;
 
     uint256  public  gap;  // Boom-Bust Spread
@@ -54,7 +54,7 @@ contract SaiTap is DSThing {
         sin = tub.sin();
         skr = tub.skr();
 
-        vox = tub.vox();
+        targetPriceFeed = tub.targetPriceFeed();
 
         gap = WAD;
     }
@@ -74,7 +74,7 @@ contract SaiTap is DSThing {
     // Feed price (sai per skr)
     function s2s() public returns (uint) {
         uint tag = tub.tag();    // ref per skr
-        uint par = vox.targetPrice();    // ref per sai
+        uint par = targetPriceFeed.targetPrice();    // ref per sai
         return rdiv(tag, par);  // sai per skr
     }
     // Boom price (sai per skr)

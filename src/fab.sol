@@ -17,16 +17,16 @@ contract GemFab {
     }
 }
 
-contract VoxFab {
-    function newVox() public returns (TargetPriceFeed vox) {
-        vox = new TargetPriceFeed(10 ** 27);
-        vox.setOwner(msg.sender);
+contract TargetPriceFeedDeployer {
+    function deploy() public returns (TargetPriceFeed targetPriceFeed) {
+        targetPriceFeed = new TargetPriceFeed(10 ** 27);
+        targetPriceFeed.setOwner(msg.sender);
     }
 }
 
 contract TubFab {
-    function newTub(DSToken sai, DSToken sin, DSToken skr, IERC20 gem, DSToken gov, DSValue pip, DSValue pep, TargetPriceFeed vox, address pit) public returns (SaiTub tub) {
-        tub = new SaiTub(sai, sin, skr, gem, gov, pip, pep, vox, pit);
+    function newTub(DSToken sai, DSToken sin, DSToken skr, IERC20 gem, DSToken gov, DSValue pip, DSValue pep, TargetPriceFeed targetPriceFeed, address pit) public returns (SaiTub tub) {
+        tub = new SaiTub(sai, sin, skr, gem, gov, pip, pep, targetPriceFeed, pit);
         tub.setOwner(msg.sender);
     }
 }
@@ -46,8 +46,8 @@ contract TopFab {
 }
 
 contract MomFab {
-    function newMom(SaiTub tub, SaiTap tap, TargetPriceFeed vox) public returns (SaiMom mom) {
-        mom = new SaiMom(tub, tap, vox);
+    function newMom(SaiTub tub, SaiTap tap, TargetPriceFeed targetPriceFeed) public returns (SaiMom mom) {
+        mom = new SaiMom(tub, tap, targetPriceFeed);
         mom.setOwner(msg.sender);
     }
 }
@@ -61,7 +61,7 @@ contract DadFab {
 
 contract DaiFab is DSAuth {
     GemFab public gemFab;
-    VoxFab public voxFab;
+    TargetPriceFeedDeployer public targetPriceFeedDeployer;
     TapFab public tapFab;
     TubFab public tubFab;
     TopFab public topFab;
@@ -72,7 +72,7 @@ contract DaiFab is DSAuth {
     DSToken public sin;
     DSToken public skr;
 
-    TargetPriceFeed public vox;
+    TargetPriceFeed public targetPriceFeed;
     SaiTub public tub;
     SaiTap public tap;
     SaiTop public top;
@@ -82,9 +82,17 @@ contract DaiFab is DSAuth {
 
     uint8 public step = 0;
 
-    constructor(GemFab gemFab_, VoxFab voxFab_, TubFab tubFab_, TapFab tapFab_, TopFab topFab_, MomFab momFab_, DadFab dadFab_) {
+    constructor(
+      GemFab gemFab_, 
+      TargetPriceFeedDeployer targetPriceFeedDeployer_, 
+      TubFab tubFab_, 
+      TapFab tapFab_, 
+      TopFab topFab_, 
+      MomFab momFab_, 
+      DadFab dadFab_
+    ) {
         gemFab = gemFab_;
-        voxFab = voxFab_;
+        targetPriceFeedDeployer = targetPriceFeedDeployer_;
         tubFab = tubFab_;
         tapFab = tapFab_;
         topFab = topFab_;
@@ -110,8 +118,8 @@ contract DaiFab is DSAuth {
         require(address(pip) != address(0));
         require(address(pep) != address(0));
         require(pit != address(0));
-        vox = voxFab.newVox();
-        tub = tubFab.newTub(sai, sin, skr, gem, gov, pip, pep, vox, pit);
+        targetPriceFeed = targetPriceFeedDeployer.deploy();
+        tub = tubFab.newTub(sai, sin, skr, gem, gov, pip, pep, targetPriceFeed, pit);
         step += 1;
     }
 
@@ -165,8 +173,8 @@ contract DaiFab is DSAuth {
 
         require(tap.gap() == 970000000000000000);
 
-        require(vox.targetPrice() == 1000000000000000000000000000);
-        require(vox.how() == 0);
+        require(targetPriceFeed.targetPrice() == 1000000000000000000000000000);
+        require(targetPriceFeed.how() == 0);
 
         step += 1;
     }
@@ -175,11 +183,11 @@ contract DaiFab is DSAuth {
         require(step == 5);
         require(address(authority) != address(0));
 
-        mom = momFab.newMom(tub, tap, vox);
+        mom = momFab.newMom(tub, tap, targetPriceFeed);
         dad = dadFab.newDad();
 
-        vox.setAuthority(dad);
-        vox.setOwner(address(0));
+        targetPriceFeed.setAuthority(dad);
+        targetPriceFeed.setOwner(address(0));
         tub.setAuthority(dad);
         tub.setOwner(address(0));
         tap.setAuthority(dad);
@@ -217,8 +225,8 @@ contract DaiFab is DSAuth {
         dad.permit(address(tap), address(skr), S('burn(uint256)'));
         dad.permit(address(tap), address(skr), S('burn(address,uint256)'));
 
-        dad.permit(address(mom), address(vox), S("mold(bytes32,uint256)"));
-        dad.permit(address(mom), address(vox), S("tune(uint256)"));
+        dad.permit(address(mom), address(targetPriceFeed), S("mold(bytes32,uint256)"));
+        dad.permit(address(mom), address(targetPriceFeed), S("tune(uint256)"));
         dad.permit(address(mom), address(tub), S("mold(bytes32,uint256)"));
         dad.permit(address(mom), address(tap), S("mold(bytes32,uint256)"));
         dad.permit(address(mom), address(tub), S("setPip(address)"));

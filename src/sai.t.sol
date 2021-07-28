@@ -41,9 +41,9 @@ contract DevTub is SaiTub, TestWarp {
         DSToken  gov_,
         DSValue  pip_,
         DSValue  pep_,
-        TargetPriceFeed   vox_,
+        TargetPriceFeed   targetPriceFeed_,
         address  pit_
-    ) SaiTub(sai_, sin_, skr_, gem_, gov_, pip_, pep_, vox_, pit_) TestWarp() {}
+    ) SaiTub(sai_, sin_, skr_, gem_, gov_, pip_, pep_, targetPriceFeed_, pit_) TestWarp() {}
 
     function era() public view override(SaiTub, TestWarp) returns (uint256) {
       return super.era();
@@ -58,7 +58,7 @@ contract DevTop is SaiTop, TestWarp {
     }
 }
 
-contract DevVox is TargetPriceFeed, TestWarp {
+contract DevTargetPriceFeed is TargetPriceFeed, TestWarp {
     constructor(uint par_) TargetPriceFeed(par_) TestWarp() {}
 
     function era() public view override(TargetPriceFeed, TestWarp) returns (uint256) {
@@ -66,16 +66,16 @@ contract DevVox is TargetPriceFeed, TestWarp {
     }
 }
 
-contract DevVoxFab {
-    function newVox() public returns (DevVox vox) {
-        vox = new DevVox(10 ** 27);
-        vox.setOwner(msg.sender);
+contract DevTargetPriceFeedDeployer {
+    function deploy() public returns (DevTargetPriceFeed targetPriceFeed) {
+        targetPriceFeed = new DevTargetPriceFeed(10 ** 27);
+        targetPriceFeed.setOwner(msg.sender);
     }
 }
 
 contract DevTubFab {
-    function newTub(DSToken sai, DSToken sin, DSToken skr, DSToken gem, DSToken gov, DSValue pip, DSValue pep, TargetPriceFeed vox, address pit) public returns (DevTub tub) {
-        tub = new DevTub(sai, sin, skr, IERC20(address(gem)), gov, pip, pep, vox, pit);
+    function newTub(DSToken sai, DSToken sin, DSToken skr, DSToken gem, DSToken gov, DSValue pip, DSValue pep, TargetPriceFeed targetPriceFeed, address pit) public returns (DevTub tub) {
+        tub = new DevTub(sai, sin, skr, IERC20(address(gem)), gov, pip, pep, targetPriceFeed, pit);
         tub.setOwner(msg.sender);
     }
 }
@@ -123,7 +123,7 @@ contract FakePerson {
 }
 
 contract SaiTestBase is DSTest, DSMath {
-    DevVox   vox;
+    DevTargetPriceFeed   targetPriceFeed;
     DevTub   tub;
     DevTop   top;
     SaiTap   tap;
@@ -157,21 +157,29 @@ contract SaiTestBase is DSTest, DSMath {
         else if (address(tkn) == address(gem)) mark(price);
     }
     function warp(uint256 age) internal {
-        vox.warp(age);
+        targetPriceFeed.warp(age);
         tub.warp(age);
         top.warp(age);
     }
 
     function setUp() public virtual {
         GemFab gemFab = new GemFab();
-        DevVoxFab voxFab = new DevVoxFab();
+        DevTargetPriceFeedDeployer targetPriceFeedDeployer = new DevTargetPriceFeedDeployer();
         DevTubFab tubFab = new DevTubFab();
         TapFab tapFab = new TapFab();
         DevTopFab topFab = new DevTopFab();
         MomFab momFab = new MomFab();
         DevDadFab dadFab = new DevDadFab();
 
-        DaiFab daiFab = new DaiFab(gemFab, VoxFab(address(voxFab)), TubFab(address(tubFab)), tapFab, TopFab(address(topFab)), momFab, DadFab(address(dadFab)));
+        DaiFab daiFab = new DaiFab(
+          gemFab, 
+          TargetPriceFeedDeployer(address(targetPriceFeedDeployer)), 
+          TubFab(address(tubFab)), 
+          tapFab, 
+          TopFab(address(topFab)), 
+          momFab, 
+          DadFab(address(dadFab))
+        );
 
         gem = new WETH9();
         gem.deposit{value: 100 ether}();
@@ -192,7 +200,7 @@ contract SaiTestBase is DSTest, DSMath {
         sai = DSToken(daiFab.sai());
         sin = DSToken(daiFab.sin());
         skr = DSToken(daiFab.skr());
-        vox = DevVox(address(daiFab.vox()));
+        targetPriceFeed = DevTargetPriceFeed(address(daiFab.targetPriceFeed()));
         tub = DevTub(address(daiFab.tub()));
         tap = SaiTap(daiFab.tap());
         top = DevTop(address(daiFab.top()));
@@ -298,14 +306,14 @@ contract SaiTubTest is SaiTestBase {
         assertTrue(!result);
     }
     function testTune() public {
-        assertEq(vox.how(), 0);
+        assertEq(targetPriceFeed.how(), 0);
         mom.setHow(2 * 10 ** 25);
-        assertEq(vox.how(), 2 * 10 ** 25);
+        assertEq(targetPriceFeed.how(), 2 * 10 ** 25);
     }
     function testPriceFeedSetters() public {
         assertTrue(address(tub.pip()) != address(0x1));
         assertTrue(address(tub.pep()) != address(0x2));
-        assertTrue(address(tub.vox()) != address(0x3));
+        assertTrue(address(tub.targetPriceFeed()) != address(0x3));
 
         (bool result,) = address(mom).call(abi.encodeWithSignature('setPip(address)', address(0x1)));
         assertTrue(result);
@@ -318,7 +326,7 @@ contract SaiTubTest is SaiTestBase {
 
         assertTrue(address(tub.pip()) == address(0x1));
         assertTrue(address(tub.pep()) == address(0x2));
-        assertTrue(address(tub.vox()) == address(0x3));
+        assertTrue(address(tub.targetPriceFeed()) == address(0x3));
     }
     function testJoinInitial() public {
         assertEq(skr.totalSupply(),     0 ether);
@@ -1201,7 +1209,7 @@ contract CageTest is SaiTestBase {
 
         assertEq(uint(top.caged()), 0);
         top.cage();
-        assertEq(uint(top.caged()), vox.era());
+        assertEq(uint(top.caged()), targetPriceFeed.era());
 
         // exit fails because ice != 0 && fog !=0 and not enough time passed
         (bool result,) = address(tub).call(abi.encodeWithSignature('exit(uint256)', 5 ether));
@@ -1267,7 +1275,7 @@ contract LiquidationTest is SaiTestBase {
     function liq(bytes32 cup) internal returns (uint256) {
         // compute the liquidation price of a cup
         uint jam = rmul(tub.ink(cup), tub.per());  // this many eth
-        uint con = rmul(tub.tab(cup), vox.targetPrice());  // this much ref debt
+        uint con = rmul(tub.tab(cup), targetPriceFeed.targetPrice());  // this much ref debt
         uint min = rmul(con, tub.mat());        // minimum ref debt
         return wdiv(min, jam);
     }
@@ -1301,7 +1309,7 @@ contract LiquidationTest is SaiTestBase {
     function collat(bytes32 cup) internal returns (uint256) {
         // compute the collateralised fraction of a cup
         uint pro = rmul(tub.ink(cup), tub.tag());
-        uint con = rmul(tub.tab(cup), vox.targetPrice());
+        uint con = rmul(tub.tab(cup), targetPriceFeed.targetPrice());
         return wdiv(pro, con);
     }
     function testCollat() public {
@@ -1679,11 +1687,11 @@ contract TapTest is SaiTestBase {
 
 contract TaxTest is SaiTestBase {
     function testEraInit() public {
-        assertEq(uint(vox.era()), block.timestamp);
+        assertEq(uint(targetPriceFeed.era()), block.timestamp);
     }
     function testEraWarp() public {
         warp(20);
-        assertEq(uint(vox.era()), block.timestamp + 20);
+        assertEq(uint(targetPriceFeed.era()), block.timestamp + 20);
     }
     function taxSetup() public returns (bytes32 cup) {
         mark(10 ether);
@@ -1933,19 +1941,19 @@ contract WayTest is SaiTestBase {
     // less ref to wipe (but the same sai)
     // This makes cups *more* collateralised with time.
     function testTau() public {
-        assertEq(uint(vox.era()), block.timestamp);
-        assertEq(uint(vox.tau()), block.timestamp);
+        assertEq(uint(targetPriceFeed.era()), block.timestamp);
+        assertEq(uint(targetPriceFeed.tau()), block.timestamp);
     }
     function testWayPar() public {
         mom.setWay(999999406327787478619865402);  // -5% / day
 
-        assertEq(wad(vox.targetPrice()), 1.00 ether);
+        assertEq(wad(targetPriceFeed.targetPrice()), 1.00 ether);
         warp(1 days);
-        assertEq(wad(vox.targetPrice()), 0.95 ether);
+        assertEq(wad(targetPriceFeed.targetPrice()), 0.95 ether);
 
         mom.setWay(1000000021979553151239153027);  // 200% / year
         warp(365 days);
-        assertEq(wad(vox.targetPrice()), 1.90 ether);
+        assertEq(wad(targetPriceFeed.targetPrice()), 1.90 ether);
     }
     function testWayDecreasingPrincipal() public {
         bytes32 cup = waySetup();
@@ -2002,7 +2010,7 @@ contract WayTest is SaiTestBase {
 
         mom.setWay(999999978020447331861593082);  // -50% / year
         warp(365 days);
-        assertEq(wad(vox.targetPrice()), 0.5 ether);
+        assertEq(wad(targetPriceFeed.targetPrice()), 0.5 ether);
         // sai now worth half as much, so we cover twice as much debt
         // for the same skr
         tap.bust(50 ether);

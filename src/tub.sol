@@ -40,7 +40,7 @@ contract SaiTub is DSThing, SaiTubEvents {
 
     DSToken  public  gov;  // Governance token
 
-    TargetPriceFeed  public  vox;  // Target price feed
+    TargetPriceFeed  public  targetPriceFeed;  // Target price feed
     DSValue             public  pip;  // Reference price feed
     DSValue             public  pep;  // Governance price feed
 
@@ -110,7 +110,7 @@ contract SaiTub is DSThing, SaiTubEvents {
         DSToken  gov_,
         DSValue  pip_,
         DSValue  pep_,
-        TargetPriceFeed   vox_,
+        TargetPriceFeed   targetPriceFeed_,
         address  pit_
     ) {
         gem = gem_;
@@ -124,7 +124,7 @@ contract SaiTub is DSThing, SaiTubEvents {
 
         pip = pip_;
         pep = pep_;
-        vox = vox_;
+        targetPriceFeed = targetPriceFeed_;
 
         axe = RAY;
         mat = RAY;
@@ -162,8 +162,8 @@ contract SaiTub is DSThing, SaiTubEvents {
     function setPep(DSValue pep_) public note auth {
         pep = pep_;
     }
-    function setVox(TargetPriceFeed vox_) public note auth {
-        vox = vox_;
+    function setVox(TargetPriceFeed targetPriceFeed_) public note auth {
+        targetPriceFeed = targetPriceFeed_;
     }
 
     //--Tap-setter------------------------------------------------------
@@ -242,7 +242,7 @@ contract SaiTub is DSThing, SaiTubEvents {
     // Returns true if cup is well-collateralized
     function safe(bytes32 cup) public returns (bool) {
         uint pro = rmul(tag(), ink(cup));
-        uint con = rmul(vox.targetPrice(), tab(cup));
+        uint con = rmul(targetPriceFeed.targetPrice(), tab(cup));
         uint min = rmul(con, mat);
         return pro >= min;
     }
@@ -325,7 +325,7 @@ contract SaiTub is DSThing, SaiTubEvents {
         cups[cup].ire = 0;
 
         // Amount owed in SKR, including liquidation penalty
-        uint owe = rdiv(rmul(rmul(rue, axe), vox.targetPrice()), tag());
+        uint owe = rdiv(rmul(rmul(rue, axe), targetPriceFeed.targetPrice()), tag());
 
         if (owe > cups[cup].ink) {
             owe = cups[cup].ink;

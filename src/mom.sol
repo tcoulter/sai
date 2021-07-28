@@ -27,12 +27,12 @@ import './tap.sol';
 contract SaiMom is DSThing {
     SaiTub  public  tub;
     SaiTap  public  tap;
-    TargetPriceFeed  public  vox;
+    TargetPriceFeed  public  targetPriceFeed;
 
-    constructor(SaiTub tub_, SaiTap tap_, TargetPriceFeed vox_) public {
+    constructor(SaiTub tub_, SaiTap tap_, TargetPriceFeed targetPriceFeed_) {
         tub = tub_;
         tap = tap_;
-        vox = vox_;
+        targetPriceFeed = targetPriceFeed_;
     }
     // Debt ceiling
     function setCap(uint wad) public note auth {
@@ -79,8 +79,8 @@ contract SaiMom is DSThing {
         tub.setPep(pep_);
     }
     // TRFM
-    function setVox(TargetPriceFeed vox_) public note auth {
-        tub.setVox(vox_);
+    function setVox(TargetPriceFeed targetPriceFeed_) public note auth {
+        tub.setVox(targetPriceFeed_);
     }
     // Boom/Bust Spread
     function setTapGap(uint wad) public note auth {
@@ -93,9 +93,9 @@ contract SaiMom is DSThing {
     function setWay(uint ray) public note auth {
         require(ray < 1000001100000000000000000000);  // 10% / day
         require(ray >  999998800000000000000000000);
-        vox.mold("way", ray);
+        targetPriceFeed.mold("way", ray);
     }
     function setHow(uint ray) public note auth {
-        vox.tune(ray);
+        targetPriceFeed.tune(ray);
     }
 }

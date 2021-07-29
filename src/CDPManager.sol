@@ -28,7 +28,7 @@ import "../node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./TargetPriceFeed.sol";
 
 contract CDPManagerEvents {
-    event LogNewCup(address indexed lad, bytes32 cup);
+    event LogNewCDP(address indexed lad, bytes32 cdp);
 }
 
 contract CDPManager is DSThing, CDPManagerEvents {
@@ -64,27 +64,27 @@ contract CDPManager is DSThing, CDPManagerEvents {
     uint256         _rhi;  // Accumulated Tax + Fee Rates
     uint256  public  rum;  // Total normalised debt
 
-    uint256                   public  cupi;
-    mapping (bytes32 => Cup)  public  cups;
+    uint256                   public  totalCDPs;
+    mapping (bytes32 => CDP)  public  cdps;
 
-    struct Cup {
+    struct CDP {
         address  lad;      // CDP owner
         uint256  ink;      // Locked collateral (in SKR)
         uint256  art;      // Outstanding normalised debt (tax only)
         uint256  ire;      // Outstanding normalised debt
     }
 
-    function lad(bytes32 cup) public view returns (address) {
-        return cups[cup].lad;
+    function lad(bytes32 cdp) public view returns (address) {
+        return cdps[cdp].lad;
     }
-    function ink(bytes32 cup) public view returns (uint) {
-        return cups[cup].ink;
+    function ink(bytes32 cdp) public view returns (uint) {
+        return cdps[cdp].ink;
     }
-    function tab(bytes32 cup) public returns (uint) {
-        return rmul(cups[cup].art, chi());
+    function tab(bytes32 cdp) public returns (uint) {
+        return rmul(cdps[cdp].art, chi());
     }
-    function rap(bytes32 cup) public returns (uint) {
-        return sub(rmul(cups[cup].ire, rhi()), tab(cup));
+    function rap(bytes32 cdp) public returns (uint) {
+        return sub(rmul(cdps[cdp].ire, rhi()), tab(cdp));
     }
 
     // Total CDP Debt
@@ -239,10 +239,10 @@ contract CDPManager is DSThing, CDPManagerEvents {
     function tag() public view returns (uint wad) {
         return off ? fit : wmul(per(), uint(pip.read()));
     }
-    // Returns true if cup is well-collateralized
-    function safe(bytes32 cup) public returns (bool) {
-        uint pro = rmul(tag(), ink(cup));
-        uint con = rmul(targetPriceFeed.targetPrice(), tab(cup));
+    // Returns true if cdp defined by cdp is well-collateralized
+    function safe(bytes32 cdp) public returns (bool) {
+        uint pro = rmul(tag(), ink(cdp));
+        uint con = rmul(targetPriceFeed.targetPrice(), tab(cdp));
         uint min = rmul(con, mat);
         return pro >= min;
     }
@@ -250,89 +250,89 @@ contract CDPManager is DSThing, CDPManagerEvents {
 
     //--CDP-operations--------------------------------------------------
 
-    function open() public note returns (bytes32 cup) {
+    function open() public note returns (bytes32 cdp) {
         require(!off);
-        cupi = add(cupi, 1);
-        cup = bytes32(cupi);
-        cups[cup].lad = msg.sender;
-        emit LogNewCup(msg.sender, cup);
+        totalCDPs = add(totalCDPs, 1);
+        cdp = bytes32(totalCDPs);
+        cdps[cdp].lad = msg.sender;
+        emit LogNewCDP(msg.sender, cdp);
     }
-    function give(bytes32 cup, address guy) public note {
-        require(msg.sender == cups[cup].lad);
+    function give(bytes32 cdp, address guy) public note {
+        require(msg.sender == cdps[cdp].lad);
         require(guy != address(0));
-        cups[cup].lad = guy;
+        cdps[cdp].lad = guy;
     }
 
-    function lock(bytes32 cup, uint wad) public note {
+    function lock(bytes32 cdp, uint wad) public note {
         require(!off);
-        cups[cup].ink = add(cups[cup].ink, wad);
+        cdps[cdp].ink = add(cdps[cdp].ink, wad);
         skr.pull(msg.sender, wad);
-        require(cups[cup].ink == 0 || cups[cup].ink > 0.005 ether);
+        require(cdps[cdp].ink == 0 || cdps[cdp].ink > 0.005 ether);
     }
-    function free(bytes32 cup, uint wad) public note {
-        require(msg.sender == cups[cup].lad);
-        cups[cup].ink = sub(cups[cup].ink, wad);
+    function free(bytes32 cdp, uint wad) public note {
+        require(msg.sender == cdps[cdp].lad);
+        cdps[cdp].ink = sub(cdps[cdp].ink, wad);
         skr.push(msg.sender, wad);
-        require(safe(cup));
-        require(cups[cup].ink == 0 || cups[cup].ink > 0.005 ether);
+        require(safe(cdp));
+        require(cdps[cdp].ink == 0 || cdps[cdp].ink > 0.005 ether);
     }
 
-    function draw(bytes32 cup, uint wad) public note {
+    function draw(bytes32 cdp, uint wad) public note {
         require(!off);
-        require(msg.sender == cups[cup].lad);
+        require(msg.sender == cdps[cdp].lad);
         require(rdiv(wad, chi()) > 0);
 
-        cups[cup].art = add(cups[cup].art, rdiv(wad, chi()));
+        cdps[cdp].art = add(cdps[cdp].art, rdiv(wad, chi()));
         rum = add(rum, rdiv(wad, chi()));
 
-        cups[cup].ire = add(cups[cup].ire, rdiv(wad, rhi()));
-        sai.mint(cups[cup].lad, wad);
+        cdps[cdp].ire = add(cdps[cdp].ire, rdiv(wad, rhi()));
+        sai.mint(cdps[cdp].lad, wad);
 
-        require(safe(cup));
+        require(safe(cdp));
         require(sai.totalSupply() <= cap);
     }
-    function wipe(bytes32 cup, uint wad) public note {
+    function wipe(bytes32 cdp, uint wad) public note {
         require(!off);
 
-        uint owe = rmul(wad, rdiv(rap(cup), tab(cup)));
+        uint owe = rmul(wad, rdiv(rap(cdp), tab(cdp)));
 
-        cups[cup].art = sub(cups[cup].art, rdiv(wad, chi()));
+        cdps[cdp].art = sub(cdps[cdp].art, rdiv(wad, chi()));
         rum = sub(rum, rdiv(wad, chi()));
 
-        cups[cup].ire = sub(cups[cup].ire, rdiv(add(wad, owe), rhi()));
+        cdps[cdp].ire = sub(cdps[cdp].ire, rdiv(add(wad, owe), rhi()));
         sai.burn(msg.sender, wad);
 
         (bytes32 val, bool ok) = pep.peek();
         if (ok && val != 0) gov.move(msg.sender, pit, wdiv(owe, uint(val)));
     }
 
-    function shut(bytes32 cup) public note {
+    function shut(bytes32 cdp) public note {
         require(!off);
-        require(msg.sender == cups[cup].lad);
-        if (tab(cup) != 0) wipe(cup, tab(cup));
-        if (ink(cup) != 0) free(cup, ink(cup));
-        delete cups[cup];
+        require(msg.sender == cdps[cdp].lad);
+        if (tab(cdp) != 0) wipe(cdp, tab(cdp));
+        if (ink(cdp) != 0) free(cdp, ink(cdp));
+        delete cdps[cdp];
     }
 
-    function bite(bytes32 cup) public note {
-        require(!safe(cup) || off);
+    function bite(bytes32 cdp) public note {
+        require(!safe(cdp) || off);
 
         // Take on all of the debt, except unpaid fees
-        uint rue = tab(cup);
+        uint rue = tab(cdp);
         sin.mint(tap, rue);
-        rum = sub(rum, cups[cup].art);
-        cups[cup].art = 0;
-        cups[cup].ire = 0;
+        rum = sub(rum, cdps[cdp].art);
+        cdps[cdp].art = 0;
+        cdps[cdp].ire = 0;
 
         // Amount owed in SKR, including liquidation penalty
         uint owe = rdiv(rmul(rmul(rue, axe), targetPriceFeed.targetPrice()), tag());
 
-        if (owe > cups[cup].ink) {
-            owe = cups[cup].ink;
+        if (owe > cdps[cdp].ink) {
+            owe = cdps[cdp].ink;
         }
 
         skr.push(tap, owe);
-        cups[cup].ink = sub(cups[cup].ink, owe);
+        cdps[cdp].ink = sub(cdps[cdp].ink, owe);
     }
 
     //------------------------------------------------------------------

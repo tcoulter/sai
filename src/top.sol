@@ -37,7 +37,7 @@ contract SaiTop is DSThing {
     uint256  public  caged;
     uint256  public  cooldown = 6 hours;
 
-    constructor(CDPManager cdpManager_, SaiTap tap_) public {
+    constructor(CDPManager cdpManager_, SaiTap tap_) {
         cdpManager = cdpManager_;
         tap = tap_;
 
@@ -54,7 +54,7 @@ contract SaiTop is DSThing {
     }
 
     // force settlement of the system at a given price (sai per gem).
-    // This is nearly the equivalent of biting all cups at once.
+    // This is nearly the equivalent of biting all cdps at once.
     // Important consideration: the gems associated with free skr can
     // be tapped to make sai whole.
     function cage(uint price) internal {

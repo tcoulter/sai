@@ -247,44 +247,44 @@ contract CDPManagerTest is SaiTestBase {
         assertEq( skr.balanceOf(address(this)), 20 ether );
         assertEq( gem.balanceOf(address(cdpManager)), 20 ether );
 
-        bytes32 cup = cdpManager.open();
+        bytes32 cdp = cdpManager.open();
 
         assertEq( skr.balanceOf(address(this)), 20 ether );
         assertEq( skr.balanceOf(address(cdpManager)), 0 ether );
-        cdpManager.lock(cup, 10 ether); // lock skr token
+        cdpManager.lock(cdp, 10 ether); // lock skr token
         assertEq( skr.balanceOf(address(this)), 10 ether );
         assertEq( skr.balanceOf(address(cdpManager)), 10 ether );
 
         assertEq( sai.balanceOf(address(this)), 0 ether);
-        cdpManager.draw(cup, 5 ether);
+        cdpManager.draw(cdp, 5 ether);
         assertEq( sai.balanceOf(address(this)), 5 ether);
 
 
         assertEq( sai.balanceOf(address(this)), 5 ether);
-        cdpManager.wipe(cup, 2 ether);
+        cdpManager.wipe(cdp, 2 ether);
         assertEq( sai.balanceOf(address(this)), 3 ether);
 
         assertEq( sai.balanceOf(address(this)), 3 ether);
         assertEq( skr.balanceOf(address(this)), 10 ether );
-        cdpManager.shut(cup);
+        cdpManager.shut(cdp);
         assertEq( sai.balanceOf(address(this)), 0 ether);
         assertEq( skr.balanceOf(address(this)), 20 ether );
     }
     function testGive() public {
-        bytes32 cup = cdpManager.open();
-        assertEq(cdpManager.lad(cup), address(this));
+        bytes32 cdp = cdpManager.open();
+        assertEq(cdpManager.lad(cdp), address(this));
 
         address ali = address(0x456);
-        cdpManager.give(cup, ali);
-        assertEq(cdpManager.lad(cup), ali);
+        cdpManager.give(cdp, ali);
+        assertEq(cdpManager.lad(cdp), ali);
     }
     function testFailGiveNotLad() public {
-        bytes32 cup = cdpManager.open();
+        bytes32 cdp = cdpManager.open();
         address ali = address(0x456);
-        cdpManager.give(cup, ali);
+        cdpManager.give(cdp, ali);
 
         address bob = address(0x789);
-        cdpManager.give(cup, bob);
+        cdpManager.give(cdp, bob);
     }
     function testMold() public {
         (bool result,) = address(mom).call(abi.encodeWithSignature('setCap(uint256)', 0 ether));
@@ -363,137 +363,137 @@ contract CDPManagerTest is SaiTestBase {
     function testFailOverDraw() public {
         mom.setMat(ray(1 ether));
         cdpManager.join(10 ether);
-        bytes32 cup = cdpManager.open();
-        cdpManager.lock(cup, 10 ether);
+        bytes32 cdp = cdpManager.open();
+        cdpManager.lock(cdp, 10 ether);
 
-        cdpManager.draw(cup, 11 ether);
+        cdpManager.draw(cdp, 11 ether);
     }
     function testFailOverDrawExcess() public {
         mom.setMat(ray(1 ether));
         cdpManager.join(20 ether);
-        bytes32 cup = cdpManager.open();
-        cdpManager.lock(cup, 10 ether);
+        bytes32 cdp = cdpManager.open();
+        cdpManager.lock(cdp, 10 ether);
 
-        cdpManager.draw(cup, 11 ether);
+        cdpManager.draw(cdp, 11 ether);
     }
     function testDraw() public {
         mom.setMat(ray(1 ether));
         cdpManager.join(10 ether);
-        bytes32 cup = cdpManager.open();
-        cdpManager.lock(cup, 10 ether);
+        bytes32 cdp = cdpManager.open();
+        cdpManager.lock(cdp, 10 ether);
 
         assertEq(sai.balanceOf(address(this)),  0 ether);
-        cdpManager.draw(cup, 10 ether);
+        cdpManager.draw(cdp, 10 ether);
         assertEq(sai.balanceOf(address(this)), 10 ether);
     }
     function testWipe() public {
         mom.setMat(ray(1 ether));
         cdpManager.join(10 ether);
-        bytes32 cup = cdpManager.open();
-        cdpManager.lock(cup, 10 ether);
-        cdpManager.draw(cup, 10 ether);
+        bytes32 cdp = cdpManager.open();
+        cdpManager.lock(cdp, 10 ether);
+        cdpManager.draw(cdp, 10 ether);
 
         assertEq(sai.balanceOf(address(this)), 10 ether);
-        cdpManager.wipe(cup, 5 ether);
+        cdpManager.wipe(cdp, 5 ether);
         assertEq(sai.balanceOf(address(this)),  5 ether);
     }
     function testUnsafe() public {
         cdpManager.join(10 ether);
-        bytes32 cup = cdpManager.open();
-        cdpManager.lock(cup, 10 ether);
-        cdpManager.draw(cup, 9 ether);
+        bytes32 cdp = cdpManager.open();
+        cdpManager.lock(cdp, 10 ether);
+        cdpManager.draw(cdp, 9 ether);
 
-        assertTrue(cdpManager.safe(cup));
+        assertTrue(cdpManager.safe(cdp));
         mark(1 ether / 2);
-        assertTrue(!cdpManager.safe(cup));
+        assertTrue(!cdpManager.safe(cdp));
     }
     function testBiteUnderParity() public {
         assertEq(uint(cdpManager.axe()), uint(ray(1 ether)));  // 100% collateralisation limit
         cdpManager.join(10 ether);
-        bytes32 cup = cdpManager.open();
-        cdpManager.lock(cup, 10 ether);
-        cdpManager.draw(cup, 5 ether);           // 200% collateralisation
+        bytes32 cdp = cdpManager.open();
+        cdpManager.lock(cdp, 10 ether);
+        cdpManager.draw(cdp, 5 ether);           // 200% collateralisation
         mark(1 ether / 4);                // 50% collateralisation
 
         assertEq(tap.fog(), uint(0));
-        cdpManager.bite(cup);
+        cdpManager.bite(cdp);
         assertEq(tap.fog(), uint(10 ether));
     }
     function testBiteOverParity() public {
         mom.setMat(ray(2 ether));  // require 200% collateralisation
         cdpManager.join(10 ether);
-        bytes32 cup = cdpManager.open();
-        cdpManager.lock(cup, 10 ether);
+        bytes32 cdp = cdpManager.open();
+        cdpManager.lock(cdp, 10 ether);
 
-        cdpManager.draw(cup, 4 ether);  // 250% collateralisation
-        assertTrue(cdpManager.safe(cup));
+        cdpManager.draw(cdp, 4 ether);  // 250% collateralisation
+        assertTrue(cdpManager.safe(cdp));
         mark(1 ether / 2);       // 125% collateralisation
-        assertTrue(!cdpManager.safe(cup));
+        assertTrue(!cdpManager.safe(cdp));
 
         assertEq(cdpManager.din(),    4 ether);
-        assertEq(cdpManager.tab(cup), 4 ether);
+        assertEq(cdpManager.tab(cdp), 4 ether);
         assertEq(tap.fog(),    0 ether);
         assertEq(tap.woe(),    0 ether);
-        cdpManager.bite(cup);
+        cdpManager.bite(cdp);
         assertEq(cdpManager.din(),    0 ether);
-        assertEq(cdpManager.tab(cup), 0 ether);
+        assertEq(cdpManager.tab(cdp), 0 ether);
         assertEq(tap.fog(),    8 ether);
         assertEq(tap.woe(),    4 ether);
 
         // cdp should now be safe with 0 sai debt and 2 skr remaining
         uint skr_before = skr.balanceOf(address(this));
-        cdpManager.free(cup, 1 ether);
+        cdpManager.free(cdp, 1 ether);
         assertEq(skr.balanceOf(address(this)) - skr_before, 1 ether);
     }
     function testLock() public {
         cdpManager.join(10 ether);
-        bytes32 cup = cdpManager.open();
+        bytes32 cdp = cdpManager.open();
 
         assertEq(skr.balanceOf(address(cdpManager)),  0 ether);
-        cdpManager.lock(cup, 10 ether);
+        cdpManager.lock(cdp, 10 ether);
         assertEq(skr.balanceOf(address(cdpManager)), 10 ether);
     }
     function testFree() public {
         mom.setMat(ray(2 ether));  // require 200% collateralisation
         cdpManager.join(10 ether);
-        bytes32 cup = cdpManager.open();
-        cdpManager.lock(cup, 10 ether);
-        cdpManager.draw(cup, 4 ether);  // 250% collateralisation
+        bytes32 cdp = cdpManager.open();
+        cdpManager.lock(cdp, 10 ether);
+        cdpManager.draw(cdp, 4 ether);  // 250% collateralisation
 
         uint skr_before = skr.balanceOf(address(this));
-        cdpManager.free(cup, 2 ether);  // 225%
+        cdpManager.free(cdp, 2 ether);  // 225%
         assertEq(skr.balanceOf(address(this)) - skr_before, 2 ether);
     }
     function testFailFreeToUnderCollat() public {
         mom.setMat(ray(2 ether));  // require 200% collateralisation
         cdpManager.join(10 ether);
-        bytes32 cup = cdpManager.open();
-        cdpManager.lock(cup, 10 ether);
-        cdpManager.draw(cup, 4 ether);  // 250% collateralisation
+        bytes32 cdp = cdpManager.open();
+        cdpManager.lock(cdp, 10 ether);
+        cdpManager.draw(cdp, 4 ether);  // 250% collateralisation
 
-        cdpManager.free(cup, 3 ether);  // 175% -- fails
+        cdpManager.free(cdp, 3 ether);  // 175% -- fails
     }
     function testFailDrawOverDebtCeiling() public {
         mom.setCap(4 ether);
         cdpManager.join(10 ether);
-        bytes32 cup = cdpManager.open();
-        cdpManager.lock(cup, 10 ether);
+        bytes32 cdp = cdpManager.open();
+        cdpManager.lock(cdp, 10 ether);
 
-        cdpManager.draw(cup, 5 ether);
+        cdpManager.draw(cdp, 5 ether);
     }
     function testDebtCeiling() public {
         mom.setCap(5 ether);
         mom.setMat(ray(2 ether));  // require 200% collat
         cdpManager.join(10 ether);
-        bytes32 cup = cdpManager.open();
-        cdpManager.lock(cup, 10 ether);
+        bytes32 cdp = cdpManager.open();
+        cdpManager.lock(cdp, 10 ether);
 
-        cdpManager.draw(cup, 5 ether);          // 200% collat, full debt ceiling
+        cdpManager.draw(cdp, 5 ether);          // 200% collat, full debt ceiling
         mark(1 ether / 2);  // 100% collat
 
         assertEq(cdpManager.air(), uint(10 ether));
         assertEq(tap.fog(), uint(0 ether));
-        cdpManager.bite(cup);
+        cdpManager.bite(cdp);
         assertEq(cdpManager.air(), uint(0 ether));
         assertEq(tap.fog(), uint(10 ether));
 
@@ -510,11 +510,11 @@ contract CageTest is SaiTestBase {
         mark(1 ether);   // price 1:1 gem:ref
         mom.setMat(ray(2 ether));       // require 200% collat
         cdpManager.join(10 ether);
-        bytes32 cup = cdpManager.open();
-        cdpManager.lock(cup, 10 ether);
-        cdpManager.draw(cup, 5 ether);       // 200% collateralisation
+        bytes32 cdp = cdpManager.open();
+        cdpManager.lock(cdp, 10 ether);
+        cdpManager.draw(cdp, 5 ether);       // 200% collateralisation
 
-        return cup;
+        return cdp;
     }
     function testCageSafeOverCollat() public {
         cageSetup();
@@ -616,8 +616,8 @@ contract CageTest is SaiTestBase {
     }
 
     function testCageNoSai() public {
-        bytes32 cup = cageSetup();
-        cdpManager.wipe(cup, 5 ether);
+        bytes32 cdp = cageSetup();
+        cdpManager.wipe(cdp, 5 ether);
         assertEq(sai.totalSupply(), 0);
 
         top.cage();
@@ -634,8 +634,8 @@ contract CageTest is SaiTestBase {
         assertEq(gem.balanceOf(address(tap)),  1005 ether);
     }
     function testMockNoSai() public {
-        bytes32 cup = cageSetup();
-        cdpManager.wipe(cup, 5 ether);
+        bytes32 cdp = cageSetup();
+        cdpManager.wipe(cdp, 5 ether);
         assertEq(sai.totalSupply(), 0);
 
         top.cage();
@@ -649,7 +649,7 @@ contract CageTest is SaiTestBase {
 
     // ensure cash returns the expected amount
     function testCashSafeOverCollat() public {
-        bytes32 cup = cageSetup();
+        bytes32 cdp = cageSetup();
         mark(1 ether);
         top.cage();
 
@@ -665,10 +665,10 @@ contract CageTest is SaiTestBase {
         assertEq(gem.balanceOf(address(this)),  95 ether);
         assertEq(gem.balanceOf(address(cdpManager)),    5 ether);
 
-        assertEq(cdpManager.ink(cup), 10 ether);
-        cdpManager.bite(cup);
-        assertEq(cdpManager.ink(cup), 5 ether);
-        cdpManager.free(cup, cdpManager.ink(cup));
+        assertEq(cdpManager.ink(cdp), 10 ether);
+        cdpManager.bite(cdp);
+        assertEq(cdpManager.ink(cdp), 5 ether);
+        cdpManager.free(cdp, cdpManager.ink(cdp));
         assertEq(skr.balanceOf(address(this)),   5 ether);
         tap.vent();
         top.flow();
@@ -679,7 +679,7 @@ contract CageTest is SaiTestBase {
         assertEq(skr.totalSupply(), 0);
     }
     function testCashSafeOverCollatWithFreeSkr() public {
-        bytes32 cup = cageSetup();
+        bytes32 cdp = cageSetup();
         cdpManager.join(20 ether);   // give us some more skr
         mark(1 ether);
         top.cage();
@@ -690,8 +690,8 @@ contract CageTest is SaiTestBase {
         assertEq(gem.balanceOf(address(cdpManager)),  25 ether);
         assertEq(gem.balanceOf(address(tap)),   5 ether);
 
-        cdpManager.bite(cup);
-        cdpManager.free(cup, cdpManager.ink(cup));
+        cdpManager.bite(cdp);
+        cdpManager.free(cdp, cdpManager.ink(cdp));
         tap.vent();
         top.flow();
         assertEq(skr.balanceOf(address(this)), 25 ether);
@@ -707,7 +707,7 @@ contract CageTest is SaiTestBase {
     }
     function testFailCashSafeOverCollatWithFreeSkrExitBeforeBail() public {
         // fails because exit is before bail
-        bytes32 cup = cageSetup();
+        bytes32 cdp = cageSetup();
         cdpManager.join(20 ether);   // give us some more skr
         mark(1 ether);
         top.cage();
@@ -723,11 +723,11 @@ contract CageTest is SaiTestBase {
         assertEq(sai.totalSupply(), 0);
         assertEq(sin.totalSupply(), 0);
 
-        cdpManager.bite(cup);
-        cdpManager.free(cup, cdpManager.ink(cup));
+        cdpManager.bite(cdp);
+        cdpManager.free(cdp, cdpManager.ink(cdp));
         tap.vent();
         top.flow();
-        assertEq(skr.balanceOf(address(this)), 5 ether); // skr retrieved by bail(cup)
+        assertEq(skr.balanceOf(address(this)), 5 ether); // skr retrieved by bail(cdp)
 
         cdpManager.exit(uint256(skr.balanceOf(address(this))));
         assertEq(gem.balanceOf(address(this)), 100 ether);
@@ -739,7 +739,7 @@ contract CageTest is SaiTestBase {
         assertEq(skr.totalSupply(), 0);
     }
     function testCashUnsafeOverCollat() public {
-        bytes32 cup = cageSetup();
+        bytes32 cdp = cageSetup();
         cdpManager.join(20 ether);   // give us some more skr
         uint price = wdiv(3 ether, 4 ether);
         mark(price);
@@ -764,11 +764,11 @@ contract CageTest is SaiTestBase {
         // at the cage price, 5 * 4 / 3 are 100% collat,
         // leaving 10 - 5 * 4 / 3 as excess = 3.333
         // this should all be returned
-        uint ink = cdpManager.ink(cup);
-        uint tab = cdpManager.tab(cup);
+        uint ink = cdpManager.ink(cdp);
+        uint tab = cdpManager.tab(cdp);
         uint skrToRecover = sub(ink, wdiv(tab, price));
-        cdpManager.bite(cup);
-        cdpManager.free(cup, cdpManager.ink(cup));
+        cdpManager.bite(cdp);
+        cdpManager.free(cdp, cdpManager.ink(cdp));
 
         assertEq(skr.balanceOf(address(this)), 20 ether + skrToRecover);
         assertEq(skr.balanceOf(address(cdpManager)),  0 ether);
@@ -784,7 +784,7 @@ contract CageTest is SaiTestBase {
         assertEq(sai.totalSupply(), 0);
     }
     function testCashAtCollat() public {
-        bytes32 cup = cageSetup();
+        bytes32 cdp = cageSetup();
         uint price = wdiv(1 ether, 2 ether);  // 100% collat
         mark(price);
         top.cage();
@@ -805,8 +805,8 @@ contract CageTest is SaiTestBase {
         // none :D
         assertEq(gem.balanceOf(address(this)), 100 ether);
         assertEq(gem.balanceOf(address(cdpManager)),    0 ether);
-        cdpManager.bite(cup);
-        cdpManager.free(cup, cdpManager.ink(cup));
+        cdpManager.bite(cdp);
+        cdpManager.free(cdp, cdpManager.ink(cdp));
         assertEq(gem.balanceOf(address(this)), 100 ether);
         assertEq(gem.balanceOf(address(cdpManager)),    0 ether);
 
@@ -815,7 +815,7 @@ contract CageTest is SaiTestBase {
         assertEq(sai.totalSupply(), 0);
     }
     function testCashAtCollatFreeSkr() public {
-        bytes32 cup = cageSetup();
+        bytes32 cdp = cageSetup();
         cdpManager.join(20 ether);   // give us some more skr
         uint price = wdiv(1 ether, 2 ether);  // 100% collat
         mark(price);
@@ -828,8 +828,8 @@ contract CageTest is SaiTestBase {
         tap.cash(sai.balanceOf(address(this)));
         assertEq(sai.balanceOf(address(this)),   0 ether);
 
-        cdpManager.bite(cup);
-        cdpManager.free(cup, cdpManager.ink(cup));
+        cdpManager.bite(cdp);
+        cdpManager.free(cdp, cdpManager.ink(cdp));
         tap.vent();
         top.flow();
         cdpManager.exit(uint256(skr.balanceOf(address(this))));
@@ -839,7 +839,7 @@ contract CageTest is SaiTestBase {
         assertEq(skr.totalSupply(), 0);
     }
     function testFailCashAtCollatFreeSkrExitBeforeBail() public {
-        bytes32 cup = cageSetup();
+        bytes32 cdp = cageSetup();
         cdpManager.join(20 ether);   // give us some more skr
         uint price = wdiv(1 ether, 2 ether);  // 100% collat
         mark(price);
@@ -864,8 +864,8 @@ contract CageTest is SaiTestBase {
         assertEq(sai.totalSupply(), 0);
         assertEq(sin.totalSupply(), 0);
 
-        cdpManager.bite(cup);
-        cdpManager.free(cup, cdpManager.ink(cup));
+        cdpManager.bite(cdp);
+        cdpManager.free(cdp, cdpManager.ink(cdp));
         tap.vent();
         cdpManager.exit(uint256(skr.balanceOf(address(this))));
 
@@ -876,7 +876,7 @@ contract CageTest is SaiTestBase {
         assertEq(skr.totalSupply(), 0);
     }
     function testCashUnderCollat() public {
-        bytes32 cup = cageSetup();
+        bytes32 cdp = cageSetup();
         uint price = wdiv(1 ether, 4 ether);  // 50% collat
         mark(price);
         top.cage();
@@ -897,8 +897,8 @@ contract CageTest is SaiTestBase {
         // none :D
         assertEq(gem.balanceOf(address(this)), 100 ether);
         assertEq(gem.balanceOf(address(cdpManager)),    0 ether);
-        cdpManager.bite(cup);
-        cdpManager.free(cup, cdpManager.ink(cup));
+        cdpManager.bite(cdp);
+        cdpManager.free(cdp, cdpManager.ink(cdp));
         assertEq(gem.balanceOf(address(this)), 100 ether);
         assertEq(gem.balanceOf(address(cdpManager)),    0 ether);
 
@@ -907,7 +907,7 @@ contract CageTest is SaiTestBase {
         assertEq(sai.totalSupply(), 0);
     }
     function testCashUnderCollatFreeSkr() public {
-        bytes32 cup = cageSetup();
+        bytes32 cdp = cageSetup();
         cdpManager.join(20 ether);   // give us some more skr
         uint price = wdiv(1 ether, 4 ether);   // 50% collat
         mark(price);
@@ -922,8 +922,8 @@ contract CageTest is SaiTestBase {
         assertEq(gem.balanceOf(address(this)), 90 ether);
 
         assertEq(skr.balanceOf(address(this)),  20 ether);
-        cdpManager.bite(cup);
-        cdpManager.free(cup, cdpManager.ink(cup));
+        cdpManager.bite(cdp);
+        cdpManager.free(cdp, cdpManager.ink(cdp));
 
         tap.vent();
         top.flow();
@@ -962,12 +962,12 @@ contract CageTest is SaiTestBase {
     }
 
     function testThreeCupsOverCollat() public {
-        bytes32 cup = cageSetup();
+        bytes32 cdp = cageSetup();
         cdpManager.join(90 ether);   // give us some more skr
-        bytes32 cup2 = cdpManager.open(); // open a new cup
-        cdpManager.lock(cup2, 20 ether); // lock collateral but not draw DAI
-        bytes32 cup3 = cdpManager.open(); // open a new cup
-        cdpManager.lock(cup3, 20 ether); // lock collateral but not draw DAI
+        bytes32 cdp2 = cdpManager.open(); // open a new cdp
+        cdpManager.lock(cdp2, 20 ether); // lock collateral but not draw DAI
+        bytes32 cdp3 = cdpManager.open(); // open a new cdp
+        cdpManager.lock(cdp3, 20 ether); // lock collateral but not draw DAI
 
         assertEq(gem.balanceOf(address(tap)), 0);
         assertEq(gem.balanceOf(address(cdpManager)), 100 ether);
@@ -982,20 +982,20 @@ contract CageTest is SaiTestBase {
         assertEq(gem.balanceOf(address(tap)), 5 ether); // Needed to payout 5 sai
         assertEq(gem.balanceOf(address(cdpManager)), 95 ether);
 
-        cdpManager.bite(cup);
-        cdpManager.free(cup, cdpManager.ink(cup)); // 5 skr recovered, and 5 skr burnt
+        cdpManager.bite(cdp);
+        cdpManager.free(cdp, cdpManager.ink(cdp)); // 5 skr recovered, and 5 skr burnt
 
         assertEq(skr.balanceOf(address(this)), 55 ether); // free skr
         assertEq(skr.balanceOf(address(cdpManager)), 40 ether); // locked skr
 
-        cdpManager.bite(cup2);
-        cdpManager.free(cup2, cdpManager.ink(cup2)); // 20 skr recovered
+        cdpManager.bite(cdp2);
+        cdpManager.free(cdp2, cdpManager.ink(cdp2)); // 20 skr recovered
 
         assertEq(skr.balanceOf(address(this)), 75 ether); // free skr
         assertEq(skr.balanceOf(address(cdpManager)), 20 ether); // locked skr
 
-        cdpManager.bite(cup3);
-        cdpManager.free(cup3, cdpManager.ink(cup3)); // 20 skr recovered
+        cdpManager.bite(cdp3);
+        cdpManager.free(cdp3, cdpManager.ink(cdp3)); // 20 skr recovered
 
         assertEq(skr.balanceOf(address(this)), 95 ether); // free skr
         assertEq(skr.balanceOf(address(cdpManager)), 0); // locked skr
@@ -1015,12 +1015,12 @@ contract CageTest is SaiTestBase {
         assertEq(skr.totalSupply(), 0);
     }
     function testThreeCupsAtCollat() public {
-        bytes32 cup = cageSetup();
+        bytes32 cdp = cageSetup();
         cdpManager.join(90 ether);   // give us some more skr
-        bytes32 cup2 = cdpManager.open(); // open a new cup
-        cdpManager.lock(cup2, 20 ether); // lock collateral but not draw DAI
-        bytes32 cup3 = cdpManager.open(); // open a new cup
-        cdpManager.lock(cup3, 20 ether); // lock collateral but not draw DAI
+        bytes32 cdp2 = cdpManager.open(); // open a new cdp
+        cdpManager.lock(cdp2, 20 ether); // lock collateral but not draw DAI
+        bytes32 cdp3 = cdpManager.open(); // open a new cdp
+        cdpManager.lock(cdp3, 20 ether); // lock collateral but not draw DAI
 
         assertEq(gem.balanceOf(address(tap)), 0);
         assertEq(gem.balanceOf(address(cdpManager)), 100 ether);
@@ -1035,20 +1035,20 @@ contract CageTest is SaiTestBase {
         assertEq(gem.balanceOf(address(tap)), 10 ether); // Needed to payout 10 sai
         assertEq(gem.balanceOf(address(cdpManager)), 90 ether);
 
-        cdpManager.bite(cup);
-        cdpManager.free(cup, cdpManager.ink(cup)); // 10 skr burnt
+        cdpManager.bite(cdp);
+        cdpManager.free(cdp, cdpManager.ink(cdp)); // 10 skr burnt
 
         assertEq(skr.balanceOf(address(this)), 50 ether); // free skr
         assertEq(skr.balanceOf(address(cdpManager)), 40 ether); // locked skr
 
-        cdpManager.bite(cup2);
-        cdpManager.free(cup2, cdpManager.ink(cup2)); // 20 skr recovered
+        cdpManager.bite(cdp2);
+        cdpManager.free(cdp2, cdpManager.ink(cdp2)); // 20 skr recovered
 
         assertEq(skr.balanceOf(address(this)), 70 ether); // free skr
         assertEq(skr.balanceOf(address(cdpManager)), 20 ether); // locked skr
 
-        cdpManager.bite(cup3);
-        cdpManager.free(cup3, cdpManager.ink(cup3)); // 20 skr recovered
+        cdpManager.bite(cdp3);
+        cdpManager.free(cdp3, cdpManager.ink(cdp3)); // 20 skr recovered
 
         assertEq(skr.balanceOf(address(this)), 90 ether); // free skr
         assertEq(skr.balanceOf(address(cdpManager)), 0); // locked skr
@@ -1068,12 +1068,12 @@ contract CageTest is SaiTestBase {
         assertEq(skr.totalSupply(), 0);
     }
     function testThreeCupsUnderCollat() public {
-        bytes32 cup = cageSetup();
+        bytes32 cdp = cageSetup();
         cdpManager.join(90 ether);   // give us some more skr
-        bytes32 cup2 = cdpManager.open(); // open a new cup
-        cdpManager.lock(cup2, 20 ether); // lock collateral but not draw DAI
-        bytes32 cup3 = cdpManager.open(); // open a new cup
-        cdpManager.lock(cup3, 20 ether); // lock collateral but not draw DAI
+        bytes32 cdp2 = cdpManager.open(); // open a new cdp
+        cdpManager.lock(cdp2, 20 ether); // lock collateral but not draw DAI
+        bytes32 cdp3 = cdpManager.open(); // open a new cdp
+        cdpManager.lock(cdp3, 20 ether); // lock collateral but not draw DAI
 
         assertEq(gem.balanceOf(address(tap)), 0);
         assertEq(gem.balanceOf(address(cdpManager)), 100 ether);
@@ -1088,20 +1088,20 @@ contract CageTest is SaiTestBase {
         assertEq(gem.balanceOf(address(tap)), 20 ether); // Needed to payout 5 sai
         assertEq(gem.balanceOf(address(cdpManager)), 80 ether);
 
-        cdpManager.bite(cup);
-        cdpManager.free(cup, cdpManager.ink(cup)); // No skr is retrieved as the cup doesn't even cover the debt. 10 locked skr in cup are burnt from cdpManager
+        cdpManager.bite(cdp);
+        cdpManager.free(cdp, cdpManager.ink(cdp)); // No skr is retrieved as the cdp doesn't even cover the debt. 10 locked skr in cdp are burnt from cdpManager
 
         assertEq(skr.balanceOf(address(this)), 50 ether); // free skr
         assertEq(skr.balanceOf(address(cdpManager)), 40 ether); // locked skr
 
-        cdpManager.bite(cup2);
-        cdpManager.free(cup2, cdpManager.ink(cup2)); // 20 skr recovered
+        cdpManager.bite(cdp2);
+        cdpManager.free(cdp2, cdpManager.ink(cdp2)); // 20 skr recovered
 
         assertEq(skr.balanceOf(address(this)), 70 ether); // free skr
         assertEq(skr.balanceOf(address(cdpManager)), 20 ether); // locked skr
 
-        cdpManager.bite(cup3);
-        cdpManager.free(cup3, cdpManager.ink(cup3)); // 20 skr recovered
+        cdpManager.bite(cdp3);
+        cdpManager.free(cdp3, cdpManager.ink(cdp3)); // 20 skr recovered
 
         assertEq(skr.balanceOf(address(this)), 90 ether); // free skr
         assertEq(skr.balanceOf(address(cdpManager)), 0); // locked skr
@@ -1121,12 +1121,12 @@ contract CageTest is SaiTestBase {
         assertEq(skr.totalSupply(), 0);
     }
     function testThreeCupsSKRZeroValue() public {
-        bytes32 cup = cageSetup();
+        bytes32 cdp = cageSetup();
         cdpManager.join(90 ether);   // give us some more skr
-        bytes32 cup2 = cdpManager.open(); // open a new cup
-        cdpManager.lock(cup2, 20 ether); // lock collateral but not draw DAI
-        bytes32 cup3 = cdpManager.open(); // open a new cup
-        cdpManager.lock(cup3, 20 ether); // lock collateral but not draw DAI
+        bytes32 cdp2 = cdpManager.open(); // open a new cdp
+        cdpManager.lock(cdp2, 20 ether); // lock collateral but not draw DAI
+        bytes32 cdp3 = cdpManager.open(); // open a new cdp
+        cdpManager.lock(cdp3, 20 ether); // lock collateral but not draw DAI
 
         assertEq(gem.balanceOf(address(tap)), 0);
         assertEq(gem.balanceOf(address(cdpManager)), 100 ether);
@@ -1141,20 +1141,20 @@ contract CageTest is SaiTestBase {
         assertEq(gem.balanceOf(address(tap)), 100 ether); // Needed to payout 5 sai
         assertEq(gem.balanceOf(address(cdpManager)), 0 ether);
 
-        cdpManager.bite(cup);
-        cdpManager.free(cup, cdpManager.ink(cup)); // No skr is retrieved as the cup doesn't even cover the debt. 10 locked skr in cup are burnt from cdpManager
+        cdpManager.bite(cdp);
+        cdpManager.free(cdp, cdpManager.ink(cdp)); // No skr is retrieved as the cdp doesn't even cover the debt. 10 locked skr in cdp are burnt from cdpManager
 
         assertEq(skr.balanceOf(address(this)), 50 ether); // free skr
         assertEq(skr.balanceOf(address(cdpManager)), 40 ether); // locked skr
 
-        cdpManager.bite(cup2);
-        cdpManager.free(cup2, cdpManager.ink(cup2)); // 20 skr recovered
+        cdpManager.bite(cdp2);
+        cdpManager.free(cdp2, cdpManager.ink(cdp2)); // 20 skr recovered
 
         assertEq(skr.balanceOf(address(this)), 70 ether); // free skr
         assertEq(skr.balanceOf(address(cdpManager)), 20 ether); // locked skr
 
-        cdpManager.bite(cup3);
-        cdpManager.free(cup3, cdpManager.ink(cup3)); // 20 skr recovered
+        cdpManager.bite(cdp3);
+        cdpManager.free(cdp3, cdpManager.ink(cdp3)); // 20 skr recovered
 
         assertEq(skr.balanceOf(address(this)), 90 ether); // free skr
         assertEq(skr.balanceOf(address(cdpManager)), 0); // locked skr
@@ -1203,9 +1203,9 @@ contract CageTest is SaiTestBase {
     }
 
     function testCageExitAfterPeriod() public {
-        bytes32 cup = cageSetup();
+        bytes32 cdp = cageSetup();
         mom.setMat(ray(1 ether));  // 100% collat limit
-        cdpManager.free(cup, 5 ether);  // 100% collat
+        cdpManager.free(cdp, 5 ether);  // 100% collat
 
         assertEq(uint(top.caged()), 0);
         top.cage();
@@ -1229,7 +1229,7 @@ contract CageTest is SaiTestBase {
         (result,) = address(cdpManager).call(abi.encodeWithSignature('exit(uint256)', 4 ether));
         assertTrue(result);
         assertEq(skr.balanceOf(address(this)), 1 ether);
-        // n.b. we don't get back 4 as there is still skr in the cup
+        // n.b. we don't get back 4 as there is still skr in the cdp
         assertEq(gem.balanceOf(address(this)), 92 ether);
 
         // now we can cash in our sai
@@ -1238,12 +1238,12 @@ contract CageTest is SaiTestBase {
         assertEq(sai.balanceOf(address(this)), 0 ether);
         assertEq(gem.balanceOf(address(this)), 97 ether);
 
-        // the remaining gem can be claimed only if the cup skr is burned
+        // the remaining gem can be claimed only if the cdp skr is burned
         assertEq(cdpManager.air(), 5 ether);
         assertEq(tap.fog(), 0 ether);
         assertEq(cdpManager.din(), 5 ether);
         assertEq(tap.woe(), 0 ether);
-        cdpManager.bite(cup);
+        cdpManager.bite(cdp);
         assertEq(cdpManager.air(), 0 ether);
         assertEq(tap.fog(), 5 ether);
         assertEq(cdpManager.din(), 0 ether);
@@ -1262,20 +1262,20 @@ contract CageTest is SaiTestBase {
     }
 
     function testShutEmptyCup() public {
-        bytes32 cup = cdpManager.open();
-        (address lad,,,) = cdpManager.cups(cup);
+        bytes32 cdp = cdpManager.open();
+        (address lad,,,) = cdpManager.cdps(cdp);
         assertEq(lad, address(this));
-        cdpManager.shut(cup);
-        (lad,,,) = cdpManager.cups(cup);
+        cdpManager.shut(cdp);
+        (lad,,,) = cdpManager.cdps(cdp);
         assertEq(lad, address(0));
     }
 }
 
 contract LiquidationTest is SaiTestBase {
-    function liq(bytes32 cup) internal returns (uint256) {
-        // compute the liquidation price of a cup
-        uint jam = rmul(cdpManager.ink(cup), cdpManager.per());  // this many eth
-        uint con = rmul(cdpManager.tab(cup), targetPriceFeed.targetPrice());  // this much ref debt
+    function liq(bytes32 cdp) internal returns (uint256) {
+        // compute the liquidation price of a cdp
+        uint jam = rmul(cdpManager.ink(cdp), cdpManager.per());  // this many eth
+        uint con = rmul(cdpManager.tab(cdp), targetPriceFeed.targetPrice());  // this much ref debt
         uint min = rmul(con, cdpManager.mat());        // minimum ref debt
         return wdiv(min, jam);
     }
@@ -1284,32 +1284,32 @@ contract LiquidationTest is SaiTestBase {
         mark(2 ether);
 
         cdpManager.join(10 ether);
-        bytes32 cup = cdpManager.open();
-        cdpManager.lock(cup, 10 ether);
-        cdpManager.draw(cup, 10 ether);        // 200% collateralisation
+        bytes32 cdp = cdpManager.open();
+        cdpManager.lock(cdp, 10 ether);
+        cdpManager.draw(cdp, 10 ether);        // 200% collateralisation
 
         mom.setMat(ray(1 ether));         // require 100% collateralisation
-        assertEq(liq(cup), 1 ether);
+        assertEq(liq(cdp), 1 ether);
 
         mom.setMat(ray(3 ether / 2));     // require 150% collateralisation
-        assertEq(liq(cup), wdiv(3 ether, 2 ether));
+        assertEq(liq(cdp), wdiv(3 ether, 2 ether));
 
         mark(6 ether);
-        assertEq(liq(cup), wdiv(3 ether, 2 ether));
+        assertEq(liq(cdp), wdiv(3 ether, 2 ether));
 
-        cdpManager.draw(cup, 30 ether);
-        assertEq(liq(cup), 6 ether);
+        cdpManager.draw(cdp, 30 ether);
+        assertEq(liq(cdp), 6 ether);
 
         cdpManager.join(10 ether);
-        assertEq(liq(cup), 6 ether);
+        assertEq(liq(cdp), 6 ether);
 
-        cdpManager.lock(cup, 10 ether);  // now 40 drawn on 20 gem == 120 ref
-        assertEq(liq(cup), 3 ether);
+        cdpManager.lock(cdp, 10 ether);  // now 40 drawn on 20 gem == 120 ref
+        assertEq(liq(cdp), 3 ether);
     }
-    function collat(bytes32 cup) internal returns (uint256) {
-        // compute the collateralised fraction of a cup
-        uint pro = rmul(cdpManager.ink(cup), cdpManager.tag());
-        uint con = rmul(cdpManager.tab(cup), targetPriceFeed.targetPrice());
+    function collat(bytes32 cdp) internal returns (uint256) {
+        // compute the collateralised fraction of a cdp
+        uint pro = rmul(cdpManager.ink(cdp), cdpManager.tag());
+        uint con = rmul(cdpManager.tab(cdp), targetPriceFeed.targetPrice());
         return wdiv(pro, con);
     }
     function testCollat() public {
@@ -1317,27 +1317,27 @@ contract LiquidationTest is SaiTestBase {
         mark(2 ether);
 
         cdpManager.join(10 ether);
-        bytes32 cup = cdpManager.open();
-        cdpManager.lock(cup, 10 ether);
-        cdpManager.draw(cup, 10 ether);
+        bytes32 cdp = cdpManager.open();
+        cdpManager.lock(cdp, 10 ether);
+        cdpManager.draw(cdp, 10 ether);
 
-        assertEq(collat(cup), 2 ether);  // 200%
+        assertEq(collat(cdp), 2 ether);  // 200%
 
         mark(4 ether);
-        assertEq(collat(cup), 4 ether);  // 400%
+        assertEq(collat(cdp), 4 ether);  // 400%
 
-        cdpManager.draw(cup, 15 ether);
-        assertEq(collat(cup), wdiv(8 ether, 5 ether));  // 160%
+        cdpManager.draw(cdp, 15 ether);
+        assertEq(collat(cdp), wdiv(8 ether, 5 ether));  // 160%
 
         mark(5 ether);
-        cdpManager.free(cup, 5 ether);
-        assertEq(collat(cup), 1 ether);  // 100%
+        cdpManager.free(cdp, 5 ether);
+        assertEq(collat(cdp), 1 ether);  // 100%
 
         mark(4 ether);
-        assertEq(collat(cup), wdiv(4 ether, 5 ether));  // 80%
+        assertEq(collat(cdp), wdiv(4 ether, 5 ether));  // 80%
 
-        cdpManager.wipe(cup, 9 ether);
-        assertEq(collat(cup), wdiv(5 ether, 4 ether));  // 125%
+        cdpManager.wipe(cdp, 9 ether);
+        assertEq(collat(cdp), wdiv(5 ether, 4 ether));  // 125%
     }
 
     function testBustMint() public {
@@ -1346,15 +1346,15 @@ contract LiquidationTest is SaiTestBase {
         mark(2 ether);
 
         cdpManager.join(10 ether);
-        bytes32 cup = cdpManager.open();
-        cdpManager.lock(cup, 10 ether);
+        bytes32 cdp = cdpManager.open();
+        cdpManager.lock(cdp, 10 ether);
 
         mark(3 ether);
-        cdpManager.draw(cup, 16 ether);  // 125% collat
+        cdpManager.draw(cdp, 16 ether);  // 125% collat
         mark(2 ether);
 
-        assertTrue(!cdpManager.safe(cup));
-        cdpManager.bite(cup);
+        assertTrue(!cdpManager.safe(cdp));
+        cdpManager.bite(cdp);
         // 20 ref of gem on 16 ref of sai
         // 125%
         // 100% = 16ref of gem == 8 gem
@@ -1394,16 +1394,16 @@ contract LiquidationTest is SaiTestBase {
         mark(20 ether);
 
         cdpManager.join(10 ether);
-        bytes32 cup = cdpManager.open();
-        cdpManager.lock(cup, 10 ether);
-        cdpManager.draw(cup, 100 ether);  // 200 % collat
+        bytes32 cdp = cdpManager.open();
+        cdpManager.lock(cdp, 10 ether);
+        cdpManager.draw(cdp, 100 ether);  // 200 % collat
 
         mark(15 ether);
-        cdpManager.bite(cup);
+        cdpManager.bite(cdp);
 
-        // nothing remains in the cup
-        assertEq(cdpManager.tab(cup), 0);
-        assertEq(cdpManager.ink(cup), 0);
+        // nothing remains in the cdp
+        assertEq(cdpManager.tab(cdp), 0);
+        assertEq(cdpManager.ink(cdp), 0);
 
         // all collateral is now fog
         assertEq(tap.fog(), 10 ether);
@@ -1693,24 +1693,24 @@ contract TaxTest is SaiTestBase {
         warp(20);
         assertEq(uint(targetPriceFeed.era()), block.timestamp + 20);
     }
-    function taxSetup() public returns (bytes32 cup) {
+    function taxSetup() public returns (bytes32 cdp) {
         mark(10 ether);
         gem.deposit{value: 1000 ether}();
 
         mom.setCap(1000 ether);
         mom.setTax(1000000564701133626865910626);  // 5% / day
-        cup = cdpManager.open();
+        cdp = cdpManager.open();
         cdpManager.join(100 ether);
-        cdpManager.lock(cup, 100 ether);
-        cdpManager.draw(cup, 100 ether);
+        cdpManager.lock(cdp, 100 ether);
+        cdpManager.draw(cdp, 100 ether);
     }
     function testTaxEra() public {
-        bytes32 cup = taxSetup();
-        assertEq(cdpManager.tab(cup), 100 ether);
+        bytes32 cdp = taxSetup();
+        assertEq(cdpManager.tab(cdp), 100 ether);
         warp(1 days);
-        assertEq(cdpManager.tab(cup), 105 ether);
+        assertEq(cdpManager.tab(cdp), 105 ether);
         warp(1 days);
-        assertEq(cdpManager.tab(cup), 110.25 ether);
+        assertEq(cdpManager.tab(cdp), 110.25 ether);
     }
     // rum doesn't change on drip
     function testTaxRum() public {
@@ -1730,84 +1730,84 @@ contract TaxTest is SaiTestBase {
     }
     // Tax accumulates as sai surplus, and CDP debt
     function testTaxJoy() public {
-        bytes32 cup = taxSetup();
-        assertEq(cdpManager.tab(cup), 100 ether);
+        bytes32 cdp = taxSetup();
+        assertEq(cdpManager.tab(cdp), 100 ether);
         assertEq(cdpManager.din(),    100 ether);
         assertEq(tap.joy(),      0 ether);
         warp(1 days);
-        assertEq(cdpManager.tab(cup), 105 ether);
+        assertEq(cdpManager.tab(cdp), 105 ether);
         assertEq(cdpManager.din(),    105 ether);
         assertEq(tap.joy(),      5 ether);
     }
     function testTaxJoy2() public {
-        bytes32 cup = taxSetup();
-        assertEq(cdpManager.tab(cup), 100 ether);
+        bytes32 cdp = taxSetup();
+        assertEq(cdpManager.tab(cdp), 100 ether);
         assertEq(cdpManager.din(),    100 ether);
         assertEq(tap.joy(),      0 ether);
         warp(1 days);
         cdpManager.drip();
-        assertEq(cdpManager.tab(cup), 105 ether);
+        assertEq(cdpManager.tab(cdp), 105 ether);
         assertEq(cdpManager.din(),    105 ether);
         assertEq(tap.joy(),      5 ether);
         // now ensure din != rum
-        cdpManager.wipe(cup, 5 ether);
-        assertEq(cdpManager.tab(cup), 100 ether);
+        cdpManager.wipe(cdp, 5 ether);
+        assertEq(cdpManager.tab(cdp), 100 ether);
         assertEq(cdpManager.din(),    100 ether);
         assertEq(tap.joy(),      5 ether);
         warp(1 days);
         cdpManager.drip();
-        assertEq(cdpManager.tab(cup), 105 ether);
+        assertEq(cdpManager.tab(cdp), 105 ether);
         assertEq(cdpManager.din(),    105 ether);
         assertEq(tap.joy(),     10 ether);
     }
     function testTaxJoy3() public {
-        bytes32 cup = taxSetup();
-        assertEq(cdpManager.tab(cup), 100 ether);
+        bytes32 cdp = taxSetup();
+        assertEq(cdpManager.tab(cdp), 100 ether);
         assertEq(cdpManager.din(),    100 ether);
         assertEq(tap.joy(),      0 ether);
         warp(1 days);
         cdpManager.drip();
-        assertEq(cdpManager.tab(cup), 105 ether);
+        assertEq(cdpManager.tab(cdp), 105 ether);
         assertEq(cdpManager.din(),    105 ether);
         assertEq(tap.joy(),      5 ether);
         // now ensure rum changes
-        cdpManager.wipe(cup, 5 ether);
-        assertEq(cdpManager.tab(cup), 100 ether);
+        cdpManager.wipe(cdp, 5 ether);
+        assertEq(cdpManager.tab(cdp), 100 ether);
         assertEq(cdpManager.din(),    100 ether);
         assertEq(tap.joy(),      5 ether);
         warp(1 days);
         cdpManager.drip();
-        assertEq(cdpManager.tab(cup), 105 ether);
+        assertEq(cdpManager.tab(cdp), 105 ether);
         assertEq(cdpManager.din(),    105 ether);
         assertEq(tap.joy(),     10 ether);
         // and ensure the last rum != din either
-        cdpManager.wipe(cup, 5 ether);
-        assertEq(cdpManager.tab(cup), 100 ether);
+        cdpManager.wipe(cdp, 5 ether);
+        assertEq(cdpManager.tab(cdp), 100 ether);
         assertEq(cdpManager.din(),    100 ether);
         assertEq(tap.joy(),     10 ether);
         warp(1 days);
         cdpManager.drip();
-        assertEq(cdpManager.tab(cup), 105 ether);
+        assertEq(cdpManager.tab(cdp), 105 ether);
         assertEq(cdpManager.din(),    105 ether);
         assertEq(tap.joy(),     15 ether);
     }
     function testTaxDraw() public {
-        bytes32 cup = taxSetup();
+        bytes32 cdp = taxSetup();
         warp(1 days);
-        assertEq(cdpManager.tab(cup), 105 ether);
-        cdpManager.draw(cup, 100 ether);
-        assertEq(cdpManager.tab(cup), 205 ether);
+        assertEq(cdpManager.tab(cdp), 105 ether);
+        cdpManager.draw(cdp, 100 ether);
+        assertEq(cdpManager.tab(cdp), 205 ether);
         warp(1 days);
-        assertEq(cdpManager.tab(cup), 215.25 ether);
+        assertEq(cdpManager.tab(cdp), 215.25 ether);
     }
     function testTaxWipe() public {
-        bytes32 cup = taxSetup();
+        bytes32 cdp = taxSetup();
         warp(1 days);
-        assertEq(cdpManager.tab(cup), 105 ether);
-        cdpManager.wipe(cup, 50 ether);
-        assertEq(cdpManager.tab(cup), 55 ether);
+        assertEq(cdpManager.tab(cdp), 105 ether);
+        cdpManager.wipe(cdp, 50 ether);
+        assertEq(cdpManager.tab(cdp), 55 ether);
         warp(1 days);
-        assertEq(cdpManager.tab(cup), 57.75 ether);
+        assertEq(cdpManager.tab(cdp), 57.75 ether);
     }
     // collected fees are available through boom
     function testTaxBoom() public {
@@ -1828,44 +1828,44 @@ contract TaxTest is SaiTestBase {
         assertEq(sin.balanceOf(address(tap)),    0 ether);
         assertEq(sai.balanceOf(address(this)), 105 ether);
     }
-    // Tax can flip a cup to unsafe
+    // Tax can flip a cdp to unsafe
     function testTaxSafe() public {
-        bytes32 cup = taxSetup();
+        bytes32 cdp = taxSetup();
         mark(1 ether);
-        assertTrue(cdpManager.safe(cup));
+        assertTrue(cdpManager.safe(cdp));
         warp(1 days);
-        assertTrue(!cdpManager.safe(cup));
+        assertTrue(!cdpManager.safe(cdp));
     }
     function testTaxBite() public {
-        bytes32 cup = taxSetup();
+        bytes32 cdp = taxSetup();
         mark(1 ether);
         warp(1 days);
-        assertEq(cdpManager.tab(cup), 105 ether);
-        cdpManager.bite(cup);
-        assertEq(cdpManager.tab(cup),   0 ether);
+        assertEq(cdpManager.tab(cdp), 105 ether);
+        cdpManager.bite(cdp);
+        assertEq(cdpManager.tab(cdp),   0 ether);
         assertEq(tap.woe(),    105 ether);
     }
     function testTaxBiteRounding() public {
-        bytes32 cup = taxSetup();
+        bytes32 cdp = taxSetup();
         mark(1 ether);
         mom.setMat(ray(1.5 ether));
         mom.setAxe(ray(1.4 ether));
         mom.setTax(ray(1.000000001547126 ether));
-        // log_named_uint('tab', cdpManager.tab(cup));
+        // log_named_uint('tab', cdpManager.tab(cdp));
         // log_named_uint('sin', cdpManager.din());
         for (uint i=0; i<=50; i++) {
             warp(10);
-            // log_named_uint('tab', cdpManager.tab(cup));
+            // log_named_uint('tab', cdpManager.tab(cdp));
             // log_named_uint('sin', cdpManager.din());
         }
         uint256 debtAfterWarp = rmul(100 ether, rpow(cdpManager.tax(), 510));
-        assertEq(cdpManager.tab(cup), debtAfterWarp);
-        cdpManager.bite(cup);
-        assertEq(cdpManager.tab(cup), 0 ether);
+        assertEq(cdpManager.tab(cdp), debtAfterWarp);
+        cdpManager.bite(cdp);
+        assertEq(cdpManager.tab(cdp), 0 ether);
         assertEq(tap.woe(), rmul(100 ether, rpow(cdpManager.tax(), 510)));
     }
     function testTaxBail() public {
-        bytes32 cup = taxSetup();
+        bytes32 cdp = taxSetup();
         warp(1 days);
         cdpManager.drip();
         mark(10 ether);
@@ -1876,8 +1876,8 @@ contract TaxTest is SaiTestBase {
 
         assertEq(skr.balanceOf(address(this)),  0 ether);
         assertEq(skr.balanceOf(address(cdpManager)), 100 ether);
-        cdpManager.bite(cup);
-        cdpManager.free(cup, cdpManager.ink(cup));
+        cdpManager.bite(cdp);
+        cdpManager.free(cdp, cdpManager.ink(cdp));
         assertEq(skr.balanceOf(address(this)), 89.5 ether);
         assertEq(skr.balanceOf(address(cdpManager)),     0 ether);
 
@@ -1895,7 +1895,7 @@ contract TaxTest is SaiTestBase {
 
         // The effect of this is that joy remaining in tap is
         // effectively distributed to all skr holders.
-        bytes32 cup = taxSetup();
+        bytes32 cdp = taxSetup();
         warp(1 days);
         mark(10 ether);
 
@@ -1905,11 +1905,11 @@ contract TaxTest is SaiTestBase {
         warp(1 days);  cdpManager.drip();  // should have no effect
         assertEq(tap.joy(), 5 ether);
 
-        uint owe = cdpManager.tab(cup);
+        uint owe = cdpManager.tab(cdp);
         assertEq(owe, 105 ether);
         assertEq(cdpManager.din(), owe);
         assertEq(tap.woe(), 0);
-        cdpManager.bite(cup);
+        cdpManager.bite(cdp);
         assertEq(cdpManager.din(), 0);
         assertEq(tap.woe(), owe);
         assertEq(tap.joy(), 5 ether);
@@ -1917,29 +1917,29 @@ contract TaxTest is SaiTestBase {
 }
 
 contract WayTest is SaiTestBase {
-    function waySetup() public returns (bytes32 cup) {
+    function waySetup() public returns (bytes32 cdp) {
         mark(10 ether);
         gem.deposit{value: 1000 ether}();
 
         mom.setCap(1000 ether);
 
-        cup = cdpManager.open();
+        cdp = cdpManager.open();
         cdpManager.join(100 ether);
-        cdpManager.lock(cup, 100 ether);
-        cdpManager.draw(cup, 100 ether);
+        cdpManager.lock(cdp, 100 ether);
+        cdpManager.draw(cdp, 100 ether);
     }
     // what does way actually do?
     // it changes the value of sai relative to ref
     // way > 1 -> par increasing, more ref per sai
     // way < 1 -> par decreasing, less ref per sai
 
-    // this changes the safety level of cups,
+    // this changes the safety level of cdps,
     // affecting `draw`, `wipe`, `free` and `bite`
 
     // if way < 1, par is decreasing and the con (in ref)
-    // of a cup is decreasing, so cup holders need
+    // of a cdp is decreasing, so cdp holders need
     // less ref to wipe (but the same sai)
-    // This makes cups *more* collateralised with time.
+    // This makes cdps *more* collateralised with time.
     function testTau() public {
         assertEq(uint(targetPriceFeed.era()), block.timestamp);
         assertEq(uint(targetPriceFeed.tau()), block.timestamp);
@@ -1956,13 +1956,13 @@ contract WayTest is SaiTestBase {
         assertEq(wad(targetPriceFeed.targetPrice()), 1.90 ether);
     }
     function testWayDecreasingPrincipal() public {
-        bytes32 cup = waySetup();
+        bytes32 cdp = waySetup();
         mark(0.98 ether);
-        assertTrue(!cdpManager.safe(cup));
+        assertTrue(!cdpManager.safe(cdp));
 
         mom.setWay(999999406327787478619865402);  // -5% / day
         warp(1 days);
-        assertTrue(cdpManager.safe(cup));
+        assertTrue(cdpManager.safe(cdp));
     }
     // `cage` is slightly affected: the cage price is
     // now in *sai per gem*, where before ref per gem
@@ -1993,9 +1993,9 @@ contract WayTest is SaiTestBase {
     // `boom` and `bust` as par is now needed to determine
     // the skr / sai price.
     function testWayBust() public {
-        bytes32 cup = waySetup();
+        bytes32 cdp = waySetup();
         mark(0.5 ether);
-        cdpManager.bite(cup);
+        cdpManager.bite(cdp);
 
         assertEq(tap.joy(),   0 ether);
         assertEq(tap.woe(), 100 ether);
@@ -2139,7 +2139,7 @@ contract GapTest is SaiTestBase {
 }
 
 contract GasTest is SaiTestBase {
-    bytes32 cup;
+    bytes32 cdp;
     function setUp() public override {
         super.setUp();
 
@@ -2154,22 +2154,22 @@ contract GasTest is SaiTestBase {
         mom.setTubGap(1 ether);
         mom.setTapGap(1 ether);
 
-        cup = cdpManager.open();
+        cdp = cdpManager.open();
         cdpManager.join(1000 ether);
-        cdpManager.lock(cup, 500 ether);
-        cdpManager.draw(cup, 100 ether);
+        cdpManager.lock(cdp, 500 ether);
+        cdpManager.draw(cdp, 100 ether);
     }
     function doLock(uint256 wad) public logs_gas {
-        cdpManager.lock(cup, wad);
+        cdpManager.lock(cdp, wad);
     }
     function doFree(uint256 wad) public logs_gas {
-        cdpManager.free(cup, wad);
+        cdpManager.free(cdp, wad);
     }
     function doDraw(uint256 wad) public logs_gas {
-        cdpManager.draw(cup, wad);
+        cdpManager.draw(cdp, wad);
     }
     function doWipe(uint256 wad) public logs_gas {
-        cdpManager.wipe(cup, wad);
+        cdpManager.wipe(cdp, wad);
     }
     function doDrip() public logs_gas {
         cdpManager.drip();
@@ -2243,7 +2243,7 @@ contract GasTest is SaiTestBase {
 }
 
 contract FeeTest is SaiTestBase {
-    function feeSetup() public returns (bytes32 cup) {
+    function feeSetup() public returns (bytes32 cdp) {
         mark(10 ether);
         mark(gov, 1 ether / 2);
         gem.deposit{value: 1000 ether}();
@@ -2254,10 +2254,10 @@ contract FeeTest is SaiTestBase {
 
         // warp(1 days);  // make chi,rhi != 1
 
-        cup = cdpManager.open();
+        cdp = cdpManager.open();
         cdpManager.join(100 ether);
-        cdpManager.lock(cup, 100 ether);
-        cdpManager.draw(cup, 100 ether);
+        cdpManager.lock(cdp, 100 ether);
+        cdpManager.draw(cdp, 100 ether);
     }
     function testFeeSet() public {
         assertEq(cdpManager.fee(), ray(1 ether));
@@ -2277,115 +2277,115 @@ contract FeeTest is SaiTestBase {
     }
     // Unpaid fees do not accumulate as sin
     function testFeeIce() public {
-        bytes32 cup = feeSetup();
+        bytes32 cdp = feeSetup();
         assertEq(cdpManager.din(),    100 ether);
-        assertEq(cdpManager.tab(cup), 100 ether);
-        assertEq(cdpManager.rap(cup),   0 ether);
+        assertEq(cdpManager.tab(cdp), 100 ether);
+        assertEq(cdpManager.rap(cdp),   0 ether);
         warp(1 days);
         assertEq(cdpManager.din(),    100 ether);
-        assertEq(cdpManager.tab(cup), 100 ether);
-        assertEq(cdpManager.rap(cup),   5 ether);
+        assertEq(cdpManager.tab(cdp), 100 ether);
+        assertEq(cdpManager.rap(cdp),   5 ether);
     }
     function testFeeDraw() public {
-        bytes32 cup = feeSetup();
+        bytes32 cdp = feeSetup();
         warp(1 days);
-        assertEq(cdpManager.rap(cup),   5 ether);
-        cdpManager.draw(cup, 100 ether);
-        assertEq(cdpManager.rap(cup),   5 ether);
+        assertEq(cdpManager.rap(cdp),   5 ether);
+        cdpManager.draw(cdp, 100 ether);
+        assertEq(cdpManager.rap(cdp),   5 ether);
         warp(1 days);
-        assertEq(cdpManager.rap(cup),  15.25 ether);
+        assertEq(cdpManager.rap(cdp),  15.25 ether);
     }
     function testFeeWipe() public {
-        bytes32 cup = feeSetup();
+        bytes32 cdp = feeSetup();
         warp(1 days);
-        assertEq(cdpManager.rap(cup),   5 ether);
-        cdpManager.wipe(cup, 50 ether);
-        assertEq(cdpManager.rap(cup),  2.5 ether);
+        assertEq(cdpManager.rap(cdp),   5 ether);
+        cdpManager.wipe(cdp, 50 ether);
+        assertEq(cdpManager.rap(cdp),  2.5 ether);
         warp(1 days);
-        assertEq(cdpManager.rap(cup),  5.125 ether);
+        assertEq(cdpManager.rap(cdp),  5.125 ether);
     }
     function testFeeCalcFromRap() public {
-        bytes32 cup = feeSetup();
+        bytes32 cdp = feeSetup();
 
-        assertEq(cdpManager.tab(cup), 100 ether);
-        assertEq(cdpManager.rap(cup),   0 ether);
+        assertEq(cdpManager.tab(cdp), 100 ether);
+        assertEq(cdpManager.rap(cdp),   0 ether);
         warp(1 days);
-        assertEq(cdpManager.tab(cup), 100 ether);
-        assertEq(cdpManager.rap(cup),   5 ether);
+        assertEq(cdpManager.tab(cdp), 100 ether);
+        assertEq(cdpManager.rap(cdp),   5 ether);
     }
     function testFeeWipePays() public {
-        bytes32 cup = feeSetup();
+        bytes32 cdp = feeSetup();
         warp(1 days);
 
-        assertEq(cdpManager.rap(cup),          5 ether);
+        assertEq(cdpManager.rap(cdp),          5 ether);
         assertEq(gov.balanceOf(address(this)), 100 ether);
-        cdpManager.wipe(cup, 50 ether);
-        assertEq(cdpManager.tab(cup),         50 ether);
+        cdpManager.wipe(cdp, 50 ether);
+        assertEq(cdpManager.tab(cdp),         50 ether);
         assertEq(gov.balanceOf(address(this)),  95 ether);
     }
     function testFeeWipeMoves() public {
-        bytes32 cup = feeSetup();
+        bytes32 cdp = feeSetup();
         warp(1 days);
 
         assertEq(gov.balanceOf(address(this)), 100 ether);
         assertEq(gov.balanceOf(address(pit)),    0 ether);
-        cdpManager.wipe(cup, 50 ether);
+        cdpManager.wipe(cdp, 50 ether);
         assertEq(gov.balanceOf(address(this)),  95 ether);
         assertEq(gov.balanceOf(address(pit)),    5 ether);
     }
     function testFeeWipeAll() public {
-        bytes32 cup = feeSetup();
+        bytes32 cdp = feeSetup();
         warp(1 days);
 
-        uint wad = cdpManager.tab(cup);
+        uint wad = cdpManager.tab(cdp);
         assertEq(wad, 100 ether);
-        uint owe = cdpManager.rap(cup);
+        uint owe = cdpManager.rap(cdp);
         assertEq(owe, 5 ether);
 
-        ( , , uint256 art, uint256 ire) = cdpManager.cups(cup);
+        ( , , uint256 art, uint256 ire) = cdpManager.cdps(cdp);
         assertEq(art, 100 ether);
         assertEq(ire, 100 ether);
         assertEq(rdiv(wad, cdpManager.chi()), art);
         assertEq(rdiv(add(wad, owe), cdpManager.rhi()), ire);
 
-        assertEq(cdpManager.rap(cup),   5 ether);
-        assertEq(cdpManager.tab(cup), 100 ether);
+        assertEq(cdpManager.rap(cdp),   5 ether);
+        assertEq(cdpManager.tab(cdp), 100 ether);
         assertEq(gov.balanceOf(address(this)), 100 ether);
-        cdpManager.wipe(cup, 100 ether);
-        assertEq(cdpManager.rap(cup), 0 ether);
-        assertEq(cdpManager.tab(cup), 0 ether);
+        cdpManager.wipe(cdp, 100 ether);
+        assertEq(cdpManager.rap(cdp), 0 ether);
+        assertEq(cdpManager.tab(cdp), 0 ether);
         assertEq(gov.balanceOf(address(this)), 90 ether);
     }
     function testFeeWipeNoFeed() public {
-        bytes32 cup = feeSetup();
+        bytes32 cdp = feeSetup();
         pep.void();
         warp(1 days);
 
         // fees continue to accumulate
-        assertEq(cdpManager.rap(cup),   5 ether);
+        assertEq(cdpManager.rap(cdp),   5 ether);
 
         // gov is no longer taken
         assertEq(gov.balanceOf(address(this)), 100 ether);
-        cdpManager.wipe(cup, 50 ether);
+        cdpManager.wipe(cdp, 50 ether);
         assertEq(gov.balanceOf(address(this)), 100 ether);
 
         // fees are still wiped proportionally
-        assertEq(cdpManager.rap(cup),  2.5 ether);
+        assertEq(cdpManager.rap(cdp),  2.5 ether);
         warp(1 days);
-        assertEq(cdpManager.rap(cup),  5.125 ether);
+        assertEq(cdpManager.rap(cdp),  5.125 ether);
     }
     function testFeeWipeShut() public {
-        bytes32 cup = feeSetup();
+        bytes32 cdp = feeSetup();
         warp(1 days);
-        cdpManager.shut(cup);
+        cdpManager.shut(cdp);
     }
     function testFeeWipeShutEmpty() public {
         feeSetup();
-        bytes32 cup = cdpManager.open();
+        bytes32 cdp = cdpManager.open();
         cdpManager.join(100 ether);
-        cdpManager.lock(cup, 100 ether);
+        cdpManager.lock(cdp, 100 ether);
         warp(1 days);
-        cdpManager.shut(cup);
+        cdpManager.shut(cdp);
     }
 }
 
@@ -2407,7 +2407,7 @@ contract PitTest is SaiTestBase {
 }
 
 contract FeeTaxTest is SaiTestBase {
-    function feeSetup() public returns (bytes32 cup) {
+    function feeSetup() public returns (bytes32 cdp) {
         mark(10 ether);
         mark(gov, 1 ether / 2);
         gem.deposit{value: 1000 ether}();
@@ -2419,10 +2419,10 @@ contract FeeTaxTest is SaiTestBase {
 
         // warp(1 days);  // make chi,rhi != 1
 
-        cup = cdpManager.open();
+        cdp = cdpManager.open();
         cdpManager.join(100 ether);
-        cdpManager.lock(cup, 100 ether);
-        cdpManager.draw(cup, 100 ether);
+        cdpManager.lock(cdp, 100 ether);
+        cdpManager.draw(cdp, 100 ether);
     }
     function testFeeTaxDrip() public {
         feeSetup();
@@ -2432,48 +2432,48 @@ contract FeeTaxTest is SaiTestBase {
     }
     // Unpaid fees do not accumulate as sin
     function testFeeTaxIce() public {
-        bytes32 cup = feeSetup();
+        bytes32 cdp = feeSetup();
 
-        assertEq(cdpManager.tab(cup), 100 ether);
-        assertEq(cdpManager.rap(cup),   0 ether);
+        assertEq(cdpManager.tab(cdp), 100 ether);
+        assertEq(cdpManager.rap(cdp),   0 ether);
 
         assertEq(cdpManager.din(),    100 ether);
         assertEq(tap.joy(),      0 ether);
 
         warp(1 days);
 
-        assertEq(cdpManager.tab(cup), 105 ether);
-        assertEq(cdpManager.rap(cup),   5.25 ether);
+        assertEq(cdpManager.tab(cdp), 105 ether);
+        assertEq(cdpManager.rap(cdp),   5.25 ether);
 
         assertEq(cdpManager.din(),    105 ether);
         assertEq(tap.joy(),      5 ether);
     }
     function testFeeTaxDraw() public {
-        bytes32 cup = feeSetup();
+        bytes32 cdp = feeSetup();
         warp(1 days);
-        assertEq(cdpManager.tab(cup), 105 ether);
-        cdpManager.draw(cup, 100 ether);
-        assertEq(cdpManager.tab(cup), 205 ether);
+        assertEq(cdpManager.tab(cdp), 105 ether);
+        cdpManager.draw(cdp, 100 ether);
+        assertEq(cdpManager.tab(cdp), 205 ether);
     }
     function testFeeTaxCalcFromRap() public {
-        bytes32 cup = feeSetup();
+        bytes32 cdp = feeSetup();
 
-        assertEq(cdpManager.tab(cup), 100.00 ether);
-        assertEq(cdpManager.rap(cup),   0.00 ether);
+        assertEq(cdpManager.tab(cdp), 100.00 ether);
+        assertEq(cdpManager.rap(cdp),   0.00 ether);
         warp(1 days);
-        assertEq(cdpManager.tab(cup), 105.00 ether);
-        assertEq(cdpManager.rap(cup),   5.25 ether);
+        assertEq(cdpManager.tab(cdp), 105.00 ether);
+        assertEq(cdpManager.rap(cdp),   5.25 ether);
     }
     function testFeeTaxWipeAll() public {
-        bytes32 cup = feeSetup();
+        bytes32 cdp = feeSetup();
         warp(1 days);
 
-        uint wad = cdpManager.tab(cup);
+        uint wad = cdpManager.tab(cdp);
         assertEq(wad, 105 ether);
-        uint owe = cdpManager.rap(cup);
+        uint owe = cdpManager.rap(cdp);
         assertEq(owe, 5.25 ether);
 
-        ( , , uint256 art, uint256 ire) = cdpManager.cups(cup);
+        ( , , uint256 art, uint256 ire) = cdpManager.cdps(cdp);
         assertEq(art, 100 ether);
         assertEq(ire, 100 ether);
         assertEq(rdiv(wad, cdpManager.chi()), art);
@@ -2481,10 +2481,10 @@ contract FeeTaxTest is SaiTestBase {
 
         sai.mint(5 ether);  // need to magic up some extra sai to pay tax
 
-        assertEq(cdpManager.rap(cup), 5.25 ether);
+        assertEq(cdpManager.rap(cdp), 5.25 ether);
         assertEq(gov.balanceOf(address(this)), 100 ether);
-        cdpManager.wipe(cup, 105 ether);
-        assertEq(cdpManager.rap(cup), 0 ether);
+        cdpManager.wipe(cdp, 105 ether);
+        assertEq(cdpManager.rap(cdp), 0 ether);
         assertEq(gov.balanceOf(address(this)), 89.5 ether);
     }
 }
@@ -2495,89 +2495,89 @@ contract AxeTest is SaiTestBase {
         mark(1 ether);
         mom.setMat(ray(2 ether));       // require 200% collat
         cdpManager.join(20 ether);
-        bytes32 cup = cdpManager.open();
-        cdpManager.lock(cup, 20 ether);
-        cdpManager.draw(cup, 10 ether);       // 200% collateralisation
+        bytes32 cdp = cdpManager.open();
+        cdpManager.lock(cdp, 20 ether);
+        cdpManager.draw(cdp, 10 ether);       // 200% collateralisation
 
-        return cup;
+        return cdp;
     }
     function testAxeBite1() public {
-        bytes32 cup = axeSetup();
+        bytes32 cdp = axeSetup();
 
         mom.setAxe(ray(1.5 ether));
         mom.setMat(ray(2.1 ether));
 
-        assertEq(cdpManager.ink(cup), 20 ether);
-        cdpManager.bite(cup);
-        assertEq(cdpManager.ink(cup), 5 ether);
+        assertEq(cdpManager.ink(cdp), 20 ether);
+        cdpManager.bite(cdp);
+        assertEq(cdpManager.ink(cdp), 5 ether);
     }
     function testAxeBite2() public {
-        bytes32 cup = axeSetup();
+        bytes32 cdp = axeSetup();
 
         mom.setAxe(ray(1.5 ether));
         mark(0.8 ether);    // collateral value 20 -> 16
 
-        assertEq(cdpManager.ink(cup), 20 ether);
-        cdpManager.bite(cup);
-        assertEq(cdpManager.ink(cup), 1.25 ether);  // (1 / 0.8)
+        assertEq(cdpManager.ink(cdp), 20 ether);
+        cdpManager.bite(cdp);
+        assertEq(cdpManager.ink(cdp), 1.25 ether);  // (1 / 0.8)
     }
     function testAxeBiteParity() public {
-        bytes32 cup = axeSetup();
+        bytes32 cdp = axeSetup();
 
         mom.setAxe(ray(1.5 ether));
         mark(0.5 ether);    // collateral value 20 -> 10
 
-        assertEq(cdpManager.ink(cup), 20 ether);
-        cdpManager.bite(cup);
-        assertEq(cdpManager.ink(cup), 0 ether);
+        assertEq(cdpManager.ink(cdp), 20 ether);
+        cdpManager.bite(cdp);
+        assertEq(cdpManager.ink(cdp), 0 ether);
     }
     function testAxeBiteUnder() public {
-        bytes32 cup = axeSetup();
+        bytes32 cdp = axeSetup();
 
         mom.setAxe(ray(1.5 ether));
         mark(0.4 ether);    // collateral value 20 -> 8
 
-        assertEq(cdpManager.ink(cup), 20 ether);
-        cdpManager.bite(cup);
-        assertEq(cdpManager.ink(cup), 0 ether);
+        assertEq(cdpManager.ink(cdp), 20 ether);
+        cdpManager.bite(cdp);
+        assertEq(cdpManager.ink(cdp), 0 ether);
     }
     function testZeroAxeCage() public {
-        bytes32 cup = axeSetup();
+        bytes32 cdp = axeSetup();
 
         mom.setAxe(ray(1 ether));
 
-        assertEq(cdpManager.ink(cup), 20 ether);
+        assertEq(cdpManager.ink(cdp), 20 ether);
         top.cage();
-        cdpManager.bite(cup);
+        cdpManager.bite(cdp);
         tap.vent();
         top.flow();
-        assertEq(cdpManager.ink(cup), 10 ether);
+        assertEq(cdpManager.ink(cdp), 10 ether);
     }
     function testAxeCage() public {
-        bytes32 cup = axeSetup();
+        bytes32 cdp = axeSetup();
 
         mom.setAxe(ray(1.5 ether));
 
-        assertEq(cdpManager.ink(cup), 20 ether);
+        assertEq(cdpManager.ink(cdp), 20 ether);
         top.cage();
-        cdpManager.bite(cup);
+        cdpManager.bite(cdp);
         tap.vent();
         top.flow();
-        assertEq(cdpManager.ink(cup), 10 ether);
+        assertEq(cdpManager.ink(cdp), 10 ether);
     }
 }
 
 contract DustTest is SaiTestBase {
     function testFailLockUnderDust() public {
         cdpManager.join(1 ether);
-        bytes32 cup = cdpManager.open();
-        cdpManager.lock(cup, 0.0049 ether);
+        bytes32 cdp = cdpManager.open();
+        cdpManager.lock(cdp, 0.0049 ether);
     }
     function testFailFreeUnderDust() public {
         cdpManager.join(1 ether);
-        bytes32 cup = cdpManager.open();
-        cdpManager.lock(cup, 1 ether);
-        cdpManager.free(cup, 0.995 ether);
+        bytes32 cdp = cdpManager.open();
+        cdpManager.lock(cdp, 1 ether);
+        cdpManager.free(cdp, 0.995 ether);
     }
 }
 

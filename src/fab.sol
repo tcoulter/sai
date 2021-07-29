@@ -24,30 +24,30 @@ contract TargetPriceFeedDeployer {
     }
 }
 
-contract TubFab {
-    function newTub(DSToken sai, DSToken sin, DSToken skr, IERC20 gem, DSToken gov, DSValue pip, DSValue pep, TargetPriceFeed targetPriceFeed, address pit) public returns (SaiTub tub) {
-        tub = new SaiTub(sai, sin, skr, gem, gov, pip, pep, targetPriceFeed, pit);
-        tub.setOwner(msg.sender);
+contract CDPManagerDeployer {
+    function deploy(DSToken sai, DSToken sin, DSToken skr, IERC20 gem, DSToken gov, DSValue pip, DSValue pep, TargetPriceFeed targetPriceFeed, address pit) public returns (CDPManager cdpManager) {
+        cdpManager = new CDPManager(sai, sin, skr, gem, gov, pip, pep, targetPriceFeed, pit);
+        cdpManager.setOwner(msg.sender);
     }
 }
 
 contract TapFab {
-    function newTap(SaiTub tub) public returns (SaiTap tap) {
-        tap = new SaiTap(tub);
+    function newTap(CDPManager cdpManager) public returns (SaiTap tap) {
+        tap = new SaiTap(cdpManager);
         tap.setOwner(msg.sender);
     }
 }
 
 contract TopFab {
-    function newTop(SaiTub tub, SaiTap tap) public returns (SaiTop top) {
-        top = new SaiTop(tub, tap);
+    function newTop(CDPManager cdpManager, SaiTap tap) public returns (SaiTop top) {
+        top = new SaiTop(cdpManager, tap);
         top.setOwner(msg.sender);
     }
 }
 
 contract MomFab {
-    function newMom(SaiTub tub, SaiTap tap, TargetPriceFeed targetPriceFeed) public returns (SaiMom mom) {
-        mom = new SaiMom(tub, tap, targetPriceFeed);
+    function newMom(CDPManager cdpManager, SaiTap tap, TargetPriceFeed targetPriceFeed) public returns (SaiMom mom) {
+        mom = new SaiMom(cdpManager, tap, targetPriceFeed);
         mom.setOwner(msg.sender);
     }
 }
@@ -63,7 +63,7 @@ contract DaiFab is DSAuth {
     GemFab public gemFab;
     TargetPriceFeedDeployer public targetPriceFeedDeployer;
     TapFab public tapFab;
-    TubFab public tubFab;
+    CDPManagerDeployer public cdpManagerDeployer;
     TopFab public topFab;
     MomFab public momFab;
     DadFab public dadFab;
@@ -73,7 +73,7 @@ contract DaiFab is DSAuth {
     DSToken public skr;
 
     TargetPriceFeed public targetPriceFeed;
-    SaiTub public tub;
+    CDPManager public cdpManager;
     SaiTap public tap;
     SaiTop public top;
 
@@ -85,7 +85,7 @@ contract DaiFab is DSAuth {
     constructor(
       GemFab gemFab_, 
       TargetPriceFeedDeployer targetPriceFeedDeployer_, 
-      TubFab tubFab_, 
+      CDPManagerDeployer cdpManagerDeployer_, 
       TapFab tapFab_, 
       TopFab topFab_, 
       MomFab momFab_, 
@@ -93,7 +93,7 @@ contract DaiFab is DSAuth {
     ) {
         gemFab = gemFab_;
         targetPriceFeedDeployer = targetPriceFeedDeployer_;
-        tubFab = tubFab_;
+        cdpManagerDeployer = cdpManagerDeployer_;
         tapFab = tapFab_;
         topFab = topFab_;
         momFab = momFab_;
@@ -119,15 +119,15 @@ contract DaiFab is DSAuth {
         require(address(pep) != address(0));
         require(pit != address(0));
         targetPriceFeed = targetPriceFeedDeployer.deploy();
-        tub = tubFab.newTub(sai, sin, skr, gem, gov, pip, pep, targetPriceFeed, pit);
+        cdpManager = cdpManagerDeployer.deploy(sai, sin, skr, gem, gov, pip, pep, targetPriceFeed, pit);
         step += 1;
     }
 
     function makeTapTop() public auth {
         require(step == 2);
-        tap = tapFab.newTap(tub);
-        tub.turn(address(tap));
-        top = topFab.newTop(tub, tap);
+        tap = tapFab.newTap(cdpManager);
+        cdpManager.turn(address(tap));
+        top = topFab.newTop(cdpManager, tap);
         step += 1;
     }
 
@@ -149,12 +149,12 @@ contract DaiFab is DSAuth {
     function configParams() public auth {
         require(step == 3);
 
-        tub.mold("cap", 0);
-        tub.mold("mat", ray(1.5  ether));
-        tub.mold("axe", ray(1.13 ether));
-        tub.mold("fee", 1000000000158153903837946257);  // 0.5% / year
-        tub.mold("tax", ray(1 ether));
-        tub.mold("gap", 1 ether);
+        cdpManager.mold("cap", 0);
+        cdpManager.mold("mat", ray(1.5  ether));
+        cdpManager.mold("axe", ray(1.13 ether));
+        cdpManager.mold("fee", 1000000000158153903837946257);  // 0.5% / year
+        cdpManager.mold("tax", ray(1 ether));
+        cdpManager.mold("gap", 1 ether);
 
         tap.mold("gap", 0.97 ether);
 
@@ -164,12 +164,12 @@ contract DaiFab is DSAuth {
     function verifyParams() public auth {
         require(step == 4);
 
-        require(tub.cap() == 0);
-        require(tub.mat() == 1500000000000000000000000000);
-        require(tub.axe() == 1130000000000000000000000000);
-        require(tub.fee() == 1000000000158153903837946257);
-        require(tub.tax() == 1000000000000000000000000000);
-        require(tub.gap() == 1000000000000000000);
+        require(cdpManager.cap() == 0);
+        require(cdpManager.mat() == 1500000000000000000000000000);
+        require(cdpManager.axe() == 1130000000000000000000000000);
+        require(cdpManager.fee() == 1000000000158153903837946257);
+        require(cdpManager.tax() == 1000000000000000000000000000);
+        require(cdpManager.gap() == 1000000000000000000);
 
         require(tap.gap() == 970000000000000000);
 
@@ -183,13 +183,13 @@ contract DaiFab is DSAuth {
         require(step == 5);
         require(address(authority) != address(0));
 
-        mom = momFab.newMom(tub, tap, targetPriceFeed);
+        mom = momFab.newMom(cdpManager, tap, targetPriceFeed);
         dad = dadFab.newDad();
 
         targetPriceFeed.setAuthority(dad);
         targetPriceFeed.setOwner(address(0));
-        tub.setAuthority(dad);
-        tub.setOwner(address(0));
+        cdpManager.setAuthority(dad);
+        cdpManager.setOwner(address(0));
         tap.setAuthority(dad);
         tap.setOwner(address(0));
         sai.setAuthority(dad);
@@ -204,17 +204,17 @@ contract DaiFab is DSAuth {
         mom.setAuthority(authority);
         mom.setOwner(address(0));
 
-        dad.permit(address(top), address(tub), S("cage(uint256,uint256)"));
-        dad.permit(address(top), address(tub), S("flow()"));
+        dad.permit(address(top), address(cdpManager), S("cage(uint256,uint256)"));
+        dad.permit(address(top), address(cdpManager), S("flow()"));
         dad.permit(address(top), address(tap), S("cage(uint256)"));
 
-        dad.permit(address(tub), address(skr), S('mint(address,uint256)'));
-        dad.permit(address(tub), address(skr), S('burn(address,uint256)'));
+        dad.permit(address(cdpManager), address(skr), S('mint(address,uint256)'));
+        dad.permit(address(cdpManager), address(skr), S('burn(address,uint256)'));
 
-        dad.permit(address(tub), address(sai), S('mint(address,uint256)'));
-        dad.permit(address(tub), address(sai), S('burn(address,uint256)'));
+        dad.permit(address(cdpManager), address(sai), S('mint(address,uint256)'));
+        dad.permit(address(cdpManager), address(sai), S('burn(address,uint256)'));
 
-        dad.permit(address(tub), address(sin), S('mint(address,uint256)'));
+        dad.permit(address(cdpManager), address(sin), S('mint(address,uint256)'));
 
         dad.permit(address(tap), address(sai), S('mint(address,uint256)'));
         dad.permit(address(tap), address(sai), S('burn(address,uint256)'));
@@ -227,11 +227,11 @@ contract DaiFab is DSAuth {
 
         dad.permit(address(mom), address(targetPriceFeed), S("mold(bytes32,uint256)"));
         dad.permit(address(mom), address(targetPriceFeed), S("tune(uint256)"));
-        dad.permit(address(mom), address(tub), S("mold(bytes32,uint256)"));
+        dad.permit(address(mom), address(cdpManager), S("mold(bytes32,uint256)"));
         dad.permit(address(mom), address(tap), S("mold(bytes32,uint256)"));
-        dad.permit(address(mom), address(tub), S("setPip(address)"));
-        dad.permit(address(mom), address(tub), S("setPep(address)"));
-        dad.permit(address(mom), address(tub), S("setVox(address)"));
+        dad.permit(address(mom), address(cdpManager), S("setPip(address)"));
+        dad.permit(address(mom), address(cdpManager), S("setPep(address)"));
+        dad.permit(address(mom), address(cdpManager), S("setTargetPriceFeed(address)"));
 
         dad.setOwner(address(0));
         step += 1;

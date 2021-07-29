@@ -1,4 +1,4 @@
-/// tub.sol -- simplified CDP engine (baby brother of `vat')
+/// CDPManager.sol -- simplified CDP engine (baby brother of `vat')
 
 // Copyright (C) 2017  Nikolai Mushegian <nikolai@dapphub.com>
 // Copyright (C) 2017  Daniel Brockman <daniel@dapphub.com>
@@ -27,11 +27,11 @@ import "../node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import "./TargetPriceFeed.sol";
 
-contract SaiTubEvents {
+contract CDPManagerEvents {
     event LogNewCup(address indexed lad, bytes32 cup);
 }
 
-contract SaiTub is DSThing, SaiTubEvents {
+contract CDPManager is DSThing, CDPManagerEvents {
     DSToken  public  sai;  // Stablecoin
     DSToken  public  sin;  // Debt (negative sai)
 

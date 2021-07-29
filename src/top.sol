@@ -19,14 +19,12 @@
 
 pragma solidity >=0.8.0;
 
-import "./tub.sol";
+import "./CDPManager.sol";
 import "./tap.sol";
-
-import "../node_modules/@openzeppelin/contracts/token/ERC721/ERC721.sol";
 
 contract SaiTop is DSThing {
     TargetPriceFeed   public  targetPriceFeed;
-    SaiTub   public  tub;
+    CDPManager   public  cdpManager;
     SaiTap   public  tap;
 
     DSToken  public  sai;
@@ -39,16 +37,16 @@ contract SaiTop is DSThing {
     uint256  public  caged;
     uint256  public  cooldown = 6 hours;
 
-    constructor(SaiTub tub_, SaiTap tap_) public {
-        tub = tub_;
+    constructor(CDPManager cdpManager_, SaiTap tap_) public {
+        cdpManager = cdpManager_;
         tap = tap_;
 
-        targetPriceFeed = tub.targetPriceFeed();
+        targetPriceFeed = cdpManager.targetPriceFeed();
 
-        sai = tub.sai();
-        sin = tub.sin();
-        skr = tub.skr();
-        gem = tub.gem();
+        sai = cdpManager.sai();
+        sin = cdpManager.sin();
+        skr = cdpManager.skr();
+        gem = cdpManager.gem();
     }
 
     function era() public view virtual returns (uint) {
@@ -60,37 +58,37 @@ contract SaiTop is DSThing {
     // Important consideration: the gems associated with free skr can
     // be tapped to make sai whole.
     function cage(uint price) internal {
-        require(!tub.off() && price != 0);
+        require(!cdpManager.off() && price != 0);
         caged = era();
 
-        tub.drip();  // collect remaining fees
+        cdpManager.drip();  // collect remaining fees
         tap.heal();  // absorb any pending fees
 
-        fit = rmul(wmul(price, targetPriceFeed.targetPrice()), tub.per());
-        // Most gems we can get per sai is the full balance of the tub.
+        fit = rmul(wmul(price, targetPriceFeed.targetPrice()), cdpManager.per());
+        // Most gems we can get per sai is the full balance of the cdpManager.
         // If there is no sai issued, we should still be able to cage.
         if (sai.totalSupply() == 0) {
             fix = rdiv(WAD, price);
         } else {
-            fix = min(rdiv(WAD, price), rdiv(tub.pie(), sai.totalSupply()));
+            fix = min(rdiv(WAD, price), rdiv(cdpManager.pie(), sai.totalSupply()));
         }
 
-        tub.cage(fit, rmul(fix, sai.totalSupply()));
+        cdpManager.cage(fit, rmul(fix, sai.totalSupply()));
         tap.cage(fix);
 
         tap.vent();    // burn pending sale skr
     }
     // cage by reading the last value from the feed for the price
     function cage() public note auth {
-        cage(rdiv(uint(tub.pip().read()), targetPriceFeed.targetPrice()));
+        cage(rdiv(uint(cdpManager.pip().read()), targetPriceFeed.targetPrice()));
     }
 
     function flow() public note {
-        require(tub.off());
-        bool empty = tub.din() == 0 && tap.fog() == 0;
+        require(cdpManager.off());
+        bool empty = cdpManager.din() == 0 && tap.fog() == 0;
         bool ended = era() > caged + cooldown;
         require(empty || ended);
-        tub.flow();
+        cdpManager.flow();
     }
 
     function setCooldown(uint cooldown_) public auth {

@@ -20,67 +20,67 @@
 pragma solidity >=0.8.0;
 
 import './ds-thing/thing.sol';
-import './tub.sol';
+import './CDPManager.sol';
 import './top.sol';
 import './tap.sol';
 
 contract SaiMom is DSThing {
-    SaiTub  public  tub;
+    CDPManager  public  cdpManager;
     SaiTap  public  tap;
     TargetPriceFeed  public  targetPriceFeed;
 
-    constructor(SaiTub tub_, SaiTap tap_, TargetPriceFeed targetPriceFeed_) {
-        tub = tub_;
+    constructor(CDPManager cdpManager_, SaiTap tap_, TargetPriceFeed targetPriceFeed_) {
+        cdpManager = cdpManager_;
         tap = tap_;
         targetPriceFeed = targetPriceFeed_;
     }
     // Debt ceiling
     function setCap(uint wad) public note auth {
-        tub.mold("cap", wad);
+        cdpManager.mold("cap", wad);
     }
     // Liquidation ratio
     function setMat(uint ray) public note auth {
-        tub.mold("mat", ray);
-        uint axe = tub.axe();
-        uint mat = tub.mat();
+        cdpManager.mold("mat", ray);
+        uint axe = cdpManager.axe();
+        uint mat = cdpManager.mat();
         require(axe >= RAY && axe <= mat);
     }
     // Stability fee
     function setTax(uint ray) public note auth {
-        tub.mold("tax", ray);
-        uint tax = tub.tax();
+        cdpManager.mold("tax", ray);
+        uint tax = cdpManager.tax();
         require(RAY <= tax);
         require(tax < 1000001100000000000000000000);  // 10% / day
     }
     // Governance fee
     function setFee(uint ray) public note auth {
-        tub.mold("fee", ray);
-        uint fee = tub.fee();
+        cdpManager.mold("fee", ray);
+        uint fee = cdpManager.fee();
         require(RAY <= fee);
         require(fee < 1000001100000000000000000000);  // 10% / day
     }
     // Liquidation fee
     function setAxe(uint ray) public note auth {
-        tub.mold("axe", ray);
-        uint axe = tub.axe();
-        uint mat = tub.mat();
+        cdpManager.mold("axe", ray);
+        uint axe = cdpManager.axe();
+        uint mat = cdpManager.mat();
         require(axe >= RAY && axe <= mat);
     }
     // Join/Exit Spread
     function setTubGap(uint wad) public note auth {
-        tub.mold("gap", wad);
+        cdpManager.mold("gap", wad);
     }
     // ETH/USD Feed
     function setPip(DSValue pip_) public note auth {
-        tub.setPip(pip_);
+        cdpManager.setPip(pip_);
     }
     // MKR/USD Feed
     function setPep(DSValue pep_) public note auth {
-        tub.setPep(pep_);
+        cdpManager.setPep(pep_);
     }
     // TRFM
     function setTargetPriceFeed(TargetPriceFeed targetPriceFeed_) public note auth {
-        tub.setTargetPriceFeed(targetPriceFeed_);
+        cdpManager.setTargetPriceFeed(targetPriceFeed_);
     }
     // Boom/Bust Spread
     function setTapGap(uint wad) public note auth {

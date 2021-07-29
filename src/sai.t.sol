@@ -869,7 +869,7 @@ contract CageTest is SaiTestBase {
         tap.vent();
         cdpManager.exit(uint256(skr.balanceOf(address(this))));
 
-        // Cup did not have skr to free, then the ramaining gem in cdpManager can not be shared as there is not more skr to exit
+        // CDP did not have skr to free, then the ramaining gem in cdpManager can not be shared as there is not more skr to exit
         assertEq(gem.balanceOf(address(this)), 70 ether + gemBySAI + gemBySKR);
         assertEq(gem.balanceOf(address(cdpManager)),  30 ether - gemBySAI - gemBySKR);
 
@@ -961,7 +961,7 @@ contract CageTest is SaiTestBase {
         assertEq(gem.balanceOf(address(tap)), 5 ether);
     }
 
-    function testThreeCupsOverCollat() public {
+    function testThreeCDPsOverCollat() public {
         bytes32 cdp = cageSetup();
         cdpManager.join(90 ether);   // give us some more skr
         bytes32 cdp2 = cdpManager.open(); // open a new cdp
@@ -1014,7 +1014,7 @@ contract CageTest is SaiTestBase {
         assertEq(gem.balanceOf(address(this)), 100 ether);
         assertEq(skr.totalSupply(), 0);
     }
-    function testThreeCupsAtCollat() public {
+    function testThreeCDPsAtCollat() public {
         bytes32 cdp = cageSetup();
         cdpManager.join(90 ether);   // give us some more skr
         bytes32 cdp2 = cdpManager.open(); // open a new cdp
@@ -1067,7 +1067,7 @@ contract CageTest is SaiTestBase {
         assertEq(gem.balanceOf(address(this)), 100 ether);
         assertEq(skr.totalSupply(), 0);
     }
-    function testThreeCupsUnderCollat() public {
+    function testThreeCDPsUnderCollat() public {
         bytes32 cdp = cageSetup();
         cdpManager.join(90 ether);   // give us some more skr
         bytes32 cdp2 = cdpManager.open(); // open a new cdp
@@ -1120,7 +1120,7 @@ contract CageTest is SaiTestBase {
         assertEq(gem.balanceOf(address(this)), 100 ether);
         assertEq(skr.totalSupply(), 0);
     }
-    function testThreeCupsSKRZeroValue() public {
+    function testThreeCDPsSKRZeroValue() public {
         bytes32 cdp = cageSetup();
         cdpManager.join(90 ether);   // give us some more skr
         bytes32 cdp2 = cdpManager.open(); // open a new cdp
@@ -1261,7 +1261,7 @@ contract CageTest is SaiTestBase {
         assertEq(gem.balanceOf(address(this)), 100 ether);
     }
 
-    function testShutEmptyCup() public {
+    function testShutEmptyCDP() public {
         bytes32 cdp = cdpManager.open();
         (address lad,,,) = cdpManager.cdps(cdp);
         assertEq(lad, address(this));

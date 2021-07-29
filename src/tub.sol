@@ -162,7 +162,7 @@ contract SaiTub is DSThing, SaiTubEvents {
     function setPep(DSValue pep_) public note auth {
         pep = pep_;
     }
-    function setVox(TargetPriceFeed targetPriceFeed_) public note auth {
+    function setTargetPriceFeed(TargetPriceFeed targetPriceFeed_) public note auth {
         targetPriceFeed = targetPriceFeed_;
     }
 

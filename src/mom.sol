@@ -79,8 +79,8 @@ contract SaiMom is DSThing {
         tub.setPep(pep_);
     }
     // TRFM
-    function setVox(TargetPriceFeed targetPriceFeed_) public note auth {
-        tub.setVox(targetPriceFeed_);
+    function setTargetPriceFeed(TargetPriceFeed targetPriceFeed_) public note auth {
+        tub.setTargetPriceFeed(targetPriceFeed_);
     }
     // Boom/Bust Spread
     function setTapGap(uint wad) public note auth {

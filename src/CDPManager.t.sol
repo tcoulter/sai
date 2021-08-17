@@ -88,23 +88,23 @@ contract CDPManagerTest is DSTest, DSThing {
     }
 
     function testGap() public {
-        assertEq(cdpManager.gap(), WAD);
+        assertEq(cdpManager.joinExitSpread(), WAD);
         cdpManager.mold('gap', 2 ether);
-        assertEq(cdpManager.gap(), 2 ether);
+        assertEq(cdpManager.joinExitSpread(), 2 ether);
         cdpManager.mold('gap', wmul(WAD, 10 ether));
-        assertEq(cdpManager.gap(), wmul(WAD, 10 ether));
+        assertEq(cdpManager.joinExitSpread(), wmul(WAD, 10 ether));
     }
 
     function testAsk() public {
         assertEq(cdpManager.per(), RAY);
-        assertEq(cdpManager.ask(3 ether), rmul(3 ether, wmul(RAY, cdpManager.gap())));
-        assertEq(cdpManager.ask(wmul(WAD, 33)), rmul(wmul(WAD, 33), wmul(RAY, cdpManager.gap())));
+        assertEq(cdpManager.ask(3 ether), rmul(3 ether, wmul(RAY, cdpManager.joinExitSpread())));
+        assertEq(cdpManager.ask(wmul(WAD, 33)), rmul(wmul(WAD, 33), wmul(RAY, cdpManager.joinExitSpread())));
     }
 
     function testBid() public {
         assertEq(cdpManager.per(), RAY);
-        assertEq(cdpManager.bid(4 ether), rmul(4 ether, wmul(cdpManager.per(), sub(2 * WAD, cdpManager.gap()))));
-        assertEq(cdpManager.bid(wmul(5 ether,3333333)), rmul(wmul(5 ether,3333333), wmul(cdpManager.per(), sub(2 * WAD, cdpManager.gap()))));
+        assertEq(cdpManager.bid(4 ether), rmul(4 ether, wmul(cdpManager.per(), sub(2 * WAD, cdpManager.joinExitSpread()))));
+        assertEq(cdpManager.bid(wmul(5 ether,3333333)), rmul(wmul(5 ether,3333333), wmul(cdpManager.per(), sub(2 * WAD, cdpManager.joinExitSpread()))));
     }
 
     function testJoin() public {

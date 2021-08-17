@@ -408,7 +408,7 @@ contract CDPManagerTest is SaiTestBase {
         assertTrue(!cdpManager.safe(cdp));
     }
     function testBiteUnderParity() public {
-        assertEq(uint(cdpManager.axe()), uint(ray(1 ether)));  // 100% collateralisation limit
+        assertEq(uint(cdpManager.liquidationPenalty()), uint(ray(1 ether)));  // 100% collateralisation limit
         cdpManager.join(10 ether);
         bytes32 cdp = cdpManager.open();
         cdpManager.lock(cdp, 10 ether);
@@ -1276,7 +1276,7 @@ contract LiquidationTest is SaiTestBase {
         // compute the liquidation price of a cdp
         uint jam = rmul(cdpManager.ink(cdp), cdpManager.per());  // this many eth
         uint con = rmul(cdpManager.tab(cdp), targetPriceFeed.targetPrice());  // this much ref debt
-        uint min = rmul(con, cdpManager.mat());        // minimum ref debt
+        uint min = rmul(con, cdpManager.liquidationRatio());        // minimum ref debt
         return wdiv(min, jam);
     }
     function testLiq() public {
@@ -1693,7 +1693,7 @@ contract TaxTest is SaiTestBase {
         warp(20);
         assertEq(uint(targetPriceFeed.era()), block.timestamp + 20);
     }
-    function taxSetup() public returns (bytes32 cdp) {
+    function stabilityFeeSetup() public returns (bytes32 cdp) {
         mark(10 ether);
         gem.deposit{value: 1000 ether}();
 
@@ -1705,7 +1705,7 @@ contract TaxTest is SaiTestBase {
         cdpManager.draw(cdp, 100 ether);
     }
     function testTaxEra() public {
-        bytes32 cdp = taxSetup();
+        bytes32 cdp = stabilityFeeSetup();
         assertEq(cdpManager.tab(cdp), 100 ether);
         warp(1 days);
         assertEq(cdpManager.tab(cdp), 105 ether);
@@ -1714,7 +1714,7 @@ contract TaxTest is SaiTestBase {
     }
     // rum doesn't change on drip
     function testTaxRum() public {
-        taxSetup();
+        stabilityFeeSetup();
         assertEq(cdpManager.rum(),    100 ether);
         warp(1 days);
         cdpManager.drip();
@@ -1722,7 +1722,7 @@ contract TaxTest is SaiTestBase {
     }
     // din increases on drip
     function testTaxDin() public {
-        taxSetup();
+        stabilityFeeSetup();
         assertEq(cdpManager.din(),    100 ether);
         warp(1 days);
         cdpManager.drip();
@@ -1730,7 +1730,7 @@ contract TaxTest is SaiTestBase {
     }
     // Tax accumulates as sai surplus, and CDP debt
     function testTaxJoy() public {
-        bytes32 cdp = taxSetup();
+        bytes32 cdp = stabilityFeeSetup();
         assertEq(cdpManager.tab(cdp), 100 ether);
         assertEq(cdpManager.din(),    100 ether);
         assertEq(tap.joy(),      0 ether);
@@ -1740,7 +1740,7 @@ contract TaxTest is SaiTestBase {
         assertEq(tap.joy(),      5 ether);
     }
     function testTaxJoy2() public {
-        bytes32 cdp = taxSetup();
+        bytes32 cdp = stabilityFeeSetup();
         assertEq(cdpManager.tab(cdp), 100 ether);
         assertEq(cdpManager.din(),    100 ether);
         assertEq(tap.joy(),      0 ether);
@@ -1761,7 +1761,7 @@ contract TaxTest is SaiTestBase {
         assertEq(tap.joy(),     10 ether);
     }
     function testTaxJoy3() public {
-        bytes32 cdp = taxSetup();
+        bytes32 cdp = stabilityFeeSetup();
         assertEq(cdpManager.tab(cdp), 100 ether);
         assertEq(cdpManager.din(),    100 ether);
         assertEq(tap.joy(),      0 ether);
@@ -1792,7 +1792,7 @@ contract TaxTest is SaiTestBase {
         assertEq(tap.joy(),     15 ether);
     }
     function testTaxDraw() public {
-        bytes32 cdp = taxSetup();
+        bytes32 cdp = stabilityFeeSetup();
         warp(1 days);
         assertEq(cdpManager.tab(cdp), 105 ether);
         cdpManager.draw(cdp, 100 ether);
@@ -1801,7 +1801,7 @@ contract TaxTest is SaiTestBase {
         assertEq(cdpManager.tab(cdp), 215.25 ether);
     }
     function testTaxWipe() public {
-        bytes32 cdp = taxSetup();
+        bytes32 cdp = stabilityFeeSetup();
         warp(1 days);
         assertEq(cdpManager.tab(cdp), 105 ether);
         cdpManager.wipe(cdp, 50 ether);
@@ -1811,7 +1811,7 @@ contract TaxTest is SaiTestBase {
     }
     // collected fees are available through boom
     function testTaxBoom() public {
-        taxSetup();
+        stabilityFeeSetup();
         warp(1 days);
         // should have 5 sai available == 0.5 skr
         cdpManager.join(0.5 ether);  // get some unlocked skr
@@ -1830,14 +1830,14 @@ contract TaxTest is SaiTestBase {
     }
     // Tax can flip a cdp to unsafe
     function testTaxSafe() public {
-        bytes32 cdp = taxSetup();
+        bytes32 cdp = stabilityFeeSetup();
         mark(1 ether);
         assertTrue(cdpManager.safe(cdp));
         warp(1 days);
         assertTrue(!cdpManager.safe(cdp));
     }
     function testTaxBite() public {
-        bytes32 cdp = taxSetup();
+        bytes32 cdp = stabilityFeeSetup();
         mark(1 ether);
         warp(1 days);
         assertEq(cdpManager.tab(cdp), 105 ether);
@@ -1846,7 +1846,7 @@ contract TaxTest is SaiTestBase {
         assertEq(tap.woe(),    105 ether);
     }
     function testTaxBiteRounding() public {
-        bytes32 cdp = taxSetup();
+        bytes32 cdp = stabilityFeeSetup();
         mark(1 ether);
         mom.setMat(ray(1.5 ether));
         mom.setAxe(ray(1.4 ether));
@@ -1858,14 +1858,14 @@ contract TaxTest is SaiTestBase {
             // log_named_uint('tab', cdpManager.tab(cdp));
             // log_named_uint('sin', cdpManager.din());
         }
-        uint256 debtAfterWarp = rmul(100 ether, rpow(cdpManager.tax(), 510));
+        uint256 debtAfterWarp = rmul(100 ether, rpow(cdpManager.stabilityFee(), 510));
         assertEq(cdpManager.tab(cdp), debtAfterWarp);
         cdpManager.bite(cdp);
         assertEq(cdpManager.tab(cdp), 0 ether);
-        assertEq(tap.woe(), rmul(100 ether, rpow(cdpManager.tax(), 510)));
+        assertEq(tap.woe(), rmul(100 ether, rpow(cdpManager.stabilityFee(), 510)));
     }
     function testTaxBail() public {
-        bytes32 cdp = taxSetup();
+        bytes32 cdp = stabilityFeeSetup();
         warp(1 days);
         cdpManager.drip();
         mark(10 ether);
@@ -1888,14 +1888,14 @@ contract TaxTest is SaiTestBase {
         assertEq(gem.balanceOf(address(this)), 1010 ether);
     }
     function testTaxCage() public {
-        // after cage, un-distributed tax revenue remains as joy - sai
+        // after cage, un-distributed stabilityFee revenue remains as joy - sai
         // surplus in the tap. The remaining joy, plus all outstanding
         // sai, balances the sin debt in the cdpManager, plus any debt (woe) in
         // the tap.
 
         // The effect of this is that joy remaining in tap is
         // effectively distributed to all skr holders.
-        bytes32 cdp = taxSetup();
+        bytes32 cdp = stabilityFeeSetup();
         warp(1 days);
         mark(10 ether);
 
@@ -2260,9 +2260,9 @@ contract FeeTest is SaiTestBase {
         cdpManager.draw(cdp, 100 ether);
     }
     function testFeeSet() public {
-        assertEq(cdpManager.fee(), ray(1 ether));
+        assertEq(cdpManager.governanceFee(), ray(1 ether));
         mom.setFee(ray(1.000000001 ether));
-        assertEq(cdpManager.fee(), ray(1.000000001 ether));
+        assertEq(cdpManager.governanceFee(), ray(1.000000001 ether));
     }
     function testFeeSetup() public {
         feeSetup();
@@ -2479,7 +2479,7 @@ contract FeeTaxTest is SaiTestBase {
         assertEq(rdiv(wad, cdpManager.chi()), art);
         assertEq(rdiv(add(wad, owe), cdpManager.rhi()), ire);
 
-        sai.mint(5 ether);  // need to magic up some extra sai to pay tax
+        sai.mint(5 ether);  // need to magic up some extra sai to pay stabilityFee
 
         assertEq(cdpManager.rap(cdp), 5.25 ether);
         assertEq(gov.balanceOf(address(this)), 100 ether);
@@ -2490,7 +2490,7 @@ contract FeeTaxTest is SaiTestBase {
 }
 
 contract AxeTest is SaiTestBase {
-    function axeSetup() public returns (bytes32) {
+    function liquidationPenaltySetup() public returns (bytes32) {
         mom.setCap(1000 ether);
         mark(1 ether);
         mom.setMat(ray(2 ether));       // require 200% collat
@@ -2502,7 +2502,7 @@ contract AxeTest is SaiTestBase {
         return cdp;
     }
     function testAxeBite1() public {
-        bytes32 cdp = axeSetup();
+        bytes32 cdp = liquidationPenaltySetup();
 
         mom.setAxe(ray(1.5 ether));
         mom.setMat(ray(2.1 ether));
@@ -2512,7 +2512,7 @@ contract AxeTest is SaiTestBase {
         assertEq(cdpManager.ink(cdp), 5 ether);
     }
     function testAxeBite2() public {
-        bytes32 cdp = axeSetup();
+        bytes32 cdp = liquidationPenaltySetup();
 
         mom.setAxe(ray(1.5 ether));
         mark(0.8 ether);    // collateral value 20 -> 16
@@ -2522,7 +2522,7 @@ contract AxeTest is SaiTestBase {
         assertEq(cdpManager.ink(cdp), 1.25 ether);  // (1 / 0.8)
     }
     function testAxeBiteParity() public {
-        bytes32 cdp = axeSetup();
+        bytes32 cdp = liquidationPenaltySetup();
 
         mom.setAxe(ray(1.5 ether));
         mark(0.5 ether);    // collateral value 20 -> 10
@@ -2532,7 +2532,7 @@ contract AxeTest is SaiTestBase {
         assertEq(cdpManager.ink(cdp), 0 ether);
     }
     function testAxeBiteUnder() public {
-        bytes32 cdp = axeSetup();
+        bytes32 cdp = liquidationPenaltySetup();
 
         mom.setAxe(ray(1.5 ether));
         mark(0.4 ether);    // collateral value 20 -> 8
@@ -2542,7 +2542,7 @@ contract AxeTest is SaiTestBase {
         assertEq(cdpManager.ink(cdp), 0 ether);
     }
     function testZeroAxeCage() public {
-        bytes32 cdp = axeSetup();
+        bytes32 cdp = liquidationPenaltySetup();
 
         mom.setAxe(ray(1 ether));
 
@@ -2554,7 +2554,7 @@ contract AxeTest is SaiTestBase {
         assertEq(cdpManager.ink(cdp), 10 ether);
     }
     function testAxeCage() public {
-        bytes32 cdp = axeSetup();
+        bytes32 cdp = liquidationPenaltySetup();
 
         mom.setAxe(ray(1.5 ether));
 

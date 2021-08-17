@@ -41,30 +41,30 @@ contract SaiMom is DSThing {
     // Liquidation ratio
     function setMat(uint ray) public note auth {
         cdpManager.mold("mat", ray);
-        uint axe = cdpManager.axe();
-        uint mat = cdpManager.mat();
-        require(axe >= RAY && axe <= mat);
+        uint liquidationPenalty = cdpManager.liquidationPenalty();
+        uint liquidationRatio = cdpManager.liquidationRatio();
+        require(liquidationPenalty >= RAY && liquidationPenalty <= liquidationRatio);
     }
     // Stability fee
     function setTax(uint ray) public note auth {
         cdpManager.mold("tax", ray);
-        uint tax = cdpManager.tax();
-        require(RAY <= tax);
-        require(tax < 1000001100000000000000000000);  // 10% / day
+        uint stabilityFee = cdpManager.stabilityFee();
+        require(RAY <= stabilityFee);
+        require(stabilityFee < 1000001100000000000000000000);  // 10% / day
     }
     // Governance fee
     function setFee(uint ray) public note auth {
         cdpManager.mold("fee", ray);
-        uint fee = cdpManager.fee();
+        uint fee = cdpManager.governanceFee();
         require(RAY <= fee);
         require(fee < 1000001100000000000000000000);  // 10% / day
     }
     // Liquidation fee
     function setAxe(uint ray) public note auth {
         cdpManager.mold("axe", ray);
-        uint axe = cdpManager.axe();
-        uint mat = cdpManager.mat();
-        require(axe >= RAY && axe <= mat);
+        uint liquidationPenalty = cdpManager.liquidationPenalty();
+        uint liquidationRatio = cdpManager.liquidationRatio();
+        require(liquidationPenalty >= RAY && liquidationPenalty <= liquidationRatio);
     }
     // Join/Exit Spread
     function setTubGap(uint wad) public note auth {

@@ -28,7 +28,7 @@ import "../node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./TargetPriceFeed.sol";
 
 contract CDPManagerEvents {
-    event LogNewCDP(address indexed lad, bytes32 cdp);
+    event LogNewCDP(address indexed owner, bytes32 cdp);
 }
 
 contract CDPManager is DSThing, CDPManagerEvents {
@@ -47,12 +47,12 @@ contract CDPManager is DSThing, CDPManagerEvents {
     address  public  tap;  // Liquidator
     address  public  pit;  // Governance Vault
 
-    uint256  public  axe;  // Liquidation penalty
-    uint256  public  cap;  // Debt ceiling
-    uint256  public  mat;  // Liquidation ratio
-    uint256  public  tax;  // Stability fee
-    uint256  public  fee;  // Governance fee
-    uint256  public  gap;  // Join-Exit Spread
+    uint256  public  liquidationPenalty;  // Liquidation penalty
+    uint256  public  debtCeiling;  // Debt ceiling
+    uint256  public  liquidationRatio;  // Liquidation ratio
+    uint256  public  stabilityFee;  // Stability fee
+    uint256  public  governanceFee;  // Governance fee
+    uint256  public  joinExitSpread;  // Join-Exit Spread
 
     bool     public  off;  // Cage flag
     bool     public  out;  // Post cage exit
@@ -60,7 +60,7 @@ contract CDPManager is DSThing, CDPManagerEvents {
     uint256  public  fit;  // REF per SKR (just before settlement)
 
     uint256  public  rho;  // Time of last drip
-    uint256         _chi;  // Accumulated Tax Rates
+    uint256         _accumulatedStabilityFeeRate;  // Accumulated Tax Rates
     uint256         _rhi;  // Accumulated Tax + Fee Rates
     uint256  public  rum;  // Total normalised debt
 
@@ -68,14 +68,14 @@ contract CDPManager is DSThing, CDPManagerEvents {
     mapping (bytes32 => CDP)  public  cdps;
 
     struct CDP {
-        address  lad;      // CDP owner
+        address  owner;      // CDP owner
         uint256  ink;      // Locked collateral (in SKR)
-        uint256  art;      // Outstanding normalised debt (tax only)
+        uint256  art;      // Outstanding normalised debt (stabilityFee only)
         uint256  ire;      // Outstanding normalised debt
     }
 
     function lad(bytes32 cdp) public view returns (address) {
-        return cdps[cdp].lad;
+        return cdps[cdp].owner;
     }
     function ink(bytes32 cdp) public view returns (uint) {
         return cdps[cdp].ink;
@@ -126,13 +126,13 @@ contract CDPManager is DSThing, CDPManagerEvents {
         pep = pep_;
         targetPriceFeed = targetPriceFeed_;
 
-        axe = RAY;
-        mat = RAY;
-        tax = RAY;
-        fee = RAY;
-        gap = WAD;
+        liquidationPenalty = RAY;
+        liquidationRatio = RAY;
+        stabilityFee = RAY;
+        governanceFee = RAY;
+        joinExitSpread = WAD;
 
-        _chi = RAY;
+        _accumulatedStabilityFeeRate = RAY;
         _rhi = RAY;
 
         rho = era();
@@ -144,13 +144,14 @@ contract CDPManager is DSThing, CDPManagerEvents {
 
     //--Risk-parameter-config-------------------------------------------
 
+    // TODO: Clean up remnants of old variable names.
     function mold(bytes32 param, uint val) public note auth {
-        if      (param == 'cap') cap = val;
-        else if (param == 'mat') { require(val >= RAY); mat = val; }
-        else if (param == 'tax') { require(val >= RAY); drip(); tax = val; }
-        else if (param == 'fee') { require(val >= RAY); drip(); fee = val; }
-        else if (param == 'axe') { require(val >= RAY); axe = val; }
-        else if (param == 'gap') { require(val >= WAD); gap = val; }
+        if      (param == 'cap') debtCeiling = val;
+        else if (param == 'mat') { require(val >= RAY); liquidationRatio = val; }
+        else if (param == 'tax') { require(val >= RAY); drip(); stabilityFee = val; }
+        else if (param == 'fee') { require(val >= RAY); drip(); governanceFee = val; }
+        else if (param == 'axe') { require(val >= RAY); liquidationPenalty = val; }
+        else if (param == 'gap') { require(val >= WAD); joinExitSpread = val; }
         else return;
     }
 
@@ -181,11 +182,11 @@ contract CDPManager is DSThing, CDPManagerEvents {
     }
     // Join price (gem per skr)
     function ask(uint wad) public view returns (uint) {
-        return rmul(wad, wmul(per(), gap));
+        return rmul(wad, wmul(per(), joinExitSpread));
     }
     // Exit price (gem per skr)
     function bid(uint wad) public view returns (uint) {
-        return rmul(wad, wmul(per(), sub(2 * WAD, gap)));
+        return rmul(wad, wmul(per(), sub(2 * WAD, joinExitSpread)));
     }
     function join(uint wad) public note {
         require(!off);
@@ -204,7 +205,7 @@ contract CDPManager is DSThing, CDPManagerEvents {
     // Accumulated Rates
     function chi() public returns (uint) {
         drip();
-        return _chi;
+        return _accumulatedStabilityFeeRate;
     }
     function rhi() public returns (uint) {
         drip();
@@ -220,15 +221,15 @@ contract CDPManager is DSThing, CDPManagerEvents {
 
         uint inc = RAY;
 
-        if (tax != RAY) {  // optimised
-            uint _chi_ = _chi;
-            inc = rpow(tax, age);
-            _chi = rmul(_chi, inc);
-            sai.mint(tap, rmul(sub(_chi, _chi_), rum));
+        if (stabilityFee != RAY) {  // optimised
+            uint _accumulatedStabilityFeeRate_ = _accumulatedStabilityFeeRate;
+            inc = rpow(stabilityFee, age);
+            _accumulatedStabilityFeeRate = rmul(_accumulatedStabilityFeeRate, inc);
+            sai.mint(tap, rmul(sub(_accumulatedStabilityFeeRate, _accumulatedStabilityFeeRate_), rum));
         }
 
         // optimised
-        if (fee != RAY) inc = rmul(inc, rpow(fee, age));
+        if (governanceFee != RAY) inc = rmul(inc, rpow(governanceFee, age));
         if (inc != RAY) _rhi = rmul(_rhi, inc);
     }
 
@@ -243,7 +244,7 @@ contract CDPManager is DSThing, CDPManagerEvents {
     function safe(bytes32 cdp) public returns (bool) {
         uint pro = rmul(tag(), ink(cdp));
         uint con = rmul(targetPriceFeed.targetPrice(), tab(cdp));
-        uint min = rmul(con, mat);
+        uint min = rmul(con, liquidationRatio);
         return pro >= min;
     }
 
@@ -254,13 +255,13 @@ contract CDPManager is DSThing, CDPManagerEvents {
         require(!off);
         totalCDPs = add(totalCDPs, 1);
         cdp = bytes32(totalCDPs);
-        cdps[cdp].lad = msg.sender;
+        cdps[cdp].owner = msg.sender;
         emit LogNewCDP(msg.sender, cdp);
     }
     function give(bytes32 cdp, address guy) public note {
-        require(msg.sender == cdps[cdp].lad);
+        require(msg.sender == cdps[cdp].owner);
         require(guy != address(0));
-        cdps[cdp].lad = guy;
+        cdps[cdp].owner = guy;
     }
 
     function lock(bytes32 cdp, uint wad) public note {
@@ -270,7 +271,7 @@ contract CDPManager is DSThing, CDPManagerEvents {
         require(cdps[cdp].ink == 0 || cdps[cdp].ink > 0.005 ether);
     }
     function free(bytes32 cdp, uint wad) public note {
-        require(msg.sender == cdps[cdp].lad);
+        require(msg.sender == cdps[cdp].owner);
         cdps[cdp].ink = sub(cdps[cdp].ink, wad);
         skr.push(msg.sender, wad);
         require(safe(cdp));
@@ -279,17 +280,17 @@ contract CDPManager is DSThing, CDPManagerEvents {
 
     function draw(bytes32 cdp, uint wad) public note {
         require(!off);
-        require(msg.sender == cdps[cdp].lad);
+        require(msg.sender == cdps[cdp].owner);
         require(rdiv(wad, chi()) > 0);
 
         cdps[cdp].art = add(cdps[cdp].art, rdiv(wad, chi()));
         rum = add(rum, rdiv(wad, chi()));
 
         cdps[cdp].ire = add(cdps[cdp].ire, rdiv(wad, rhi()));
-        sai.mint(cdps[cdp].lad, wad);
+        sai.mint(cdps[cdp].owner, wad);
 
         require(safe(cdp));
-        require(sai.totalSupply() <= cap);
+        require(sai.totalSupply() <= debtCeiling);
     }
     function wipe(bytes32 cdp, uint wad) public note {
         require(!off);
@@ -308,7 +309,7 @@ contract CDPManager is DSThing, CDPManagerEvents {
 
     function shut(bytes32 cdp) public note {
         require(!off);
-        require(msg.sender == cdps[cdp].lad);
+        require(msg.sender == cdps[cdp].owner);
         if (tab(cdp) != 0) wipe(cdp, tab(cdp));
         if (ink(cdp) != 0) free(cdp, ink(cdp));
         delete cdps[cdp];
@@ -325,7 +326,7 @@ contract CDPManager is DSThing, CDPManagerEvents {
         cdps[cdp].ire = 0;
 
         // Amount owed in SKR, including liquidation penalty
-        uint owe = rdiv(rmul(rmul(rue, axe), targetPriceFeed.targetPrice()), tag());
+        uint owe = rdiv(rmul(rmul(rue, liquidationPenalty), targetPriceFeed.targetPrice()), tag());
 
         if (owe > cdps[cdp].ink) {
             owe = cdps[cdp].ink;
@@ -340,8 +341,8 @@ contract CDPManager is DSThing, CDPManagerEvents {
     function cage(uint fit_, uint jam) public note auth {
         require(!off && fit_ != 0);
         off = true;
-        axe = RAY;
-        gap = WAD;
+        liquidationPenalty = RAY;
+        joinExitSpread = WAD;
         fit = fit_;         // ref per skr
         require(gem.transfer(tap, jam));
     }

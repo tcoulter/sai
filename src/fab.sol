@@ -164,12 +164,12 @@ contract DaiFab is DSAuth {
     function verifyParams() public auth {
         require(step == 4);
 
-        require(cdpManager.cap() == 0);
-        require(cdpManager.mat() == 1500000000000000000000000000);
-        require(cdpManager.axe() == 1130000000000000000000000000);
-        require(cdpManager.fee() == 1000000000158153903837946257);
-        require(cdpManager.tax() == 1000000000000000000000000000);
-        require(cdpManager.gap() == 1000000000000000000);
+        require(cdpManager.debtCeiling() == 0);
+        require(cdpManager.liquidationRatio() == 1500000000000000000000000000);
+        require(cdpManager.liquidationPenalty() == 1130000000000000000000000000);
+        require(cdpManager.governanceFee() == 1000000000158153903837946257);
+        require(cdpManager.stabilityFee() == 1000000000000000000000000000);
+        require(cdpManager.joinExitSpread() == 1000000000000000000);
 
         require(tap.gap() == 970000000000000000);
 

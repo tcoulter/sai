@@ -19,15 +19,15 @@
 
 pragma solidity >=0.8.0;
 
-import "./tub.sol";
+import "./CDPManager.sol";
 
 contract SaiTap is DSThing {
     DSToken  public  sai;
     DSToken  public  sin;
     DSToken  public  skr;
 
-    SaiVox   public  vox;
-    SaiTub   public  tub;
+    TargetPriceFeed   public  targetPriceFeed;
+    CDPManager   public  cdpManager;
 
     uint256  public  gap;  // Boom-Bust Spread
     bool     public  off;  // Cage flag
@@ -47,14 +47,14 @@ contract SaiTap is DSThing {
     }
 
 
-    constructor(SaiTub tub_) {
-        tub = tub_;
+    constructor(CDPManager cdpManager_) {
+        cdpManager = cdpManager_;
 
-        sai = tub.sai();
-        sin = tub.sin();
-        skr = tub.skr();
+        sai = cdpManager.sai();
+        sin = cdpManager.sin();
+        skr = cdpManager.skr();
 
-        vox = tub.vox();
+        targetPriceFeed = cdpManager.targetPriceFeed();
 
         gap = WAD;
     }
@@ -73,8 +73,8 @@ contract SaiTap is DSThing {
 
     // Feed price (sai per skr)
     function s2s() public returns (uint) {
-        uint tag = tub.tag();    // ref per skr
-        uint par = vox.par();    // ref per sai
+        uint tag = cdpManager.tag();    // ref per skr
+        uint par = targetPriceFeed.targetPrice();    // ref per sai
         return rdiv(tag, par);  // sai per skr
     }
     // Boom price (sai per skr)
@@ -121,12 +121,12 @@ contract SaiTap is DSThing {
     function cash(uint wad) public note {
         require(off);
         sai.burn(msg.sender, wad);
-        require(tub.gem().transfer(msg.sender, rmul(wad, fix)));
+        require(cdpManager.gem().transfer(msg.sender, rmul(wad, fix)));
     }
     function mock(uint wad) public note {
         require(off);
         sai.mint(msg.sender, wad);
-        require(tub.gem().transferFrom(msg.sender, address(this), rmul(wad, fix)));
+        require(cdpManager.gem().transferFrom(msg.sender, address(this), rmul(wad, fix)));
     }
     function vent() public note {
         require(off);

@@ -31,7 +31,7 @@ contract DSToken is DSMath, DSAuth {
     string                                            public  name = "";     // Optional token name
 
 
-    constructor(string memory symbol_) public {
+    constructor(string memory symbol_) {
         symbol = symbol_;
     }
 

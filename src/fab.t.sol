@@ -5,8 +5,8 @@ import './fab.sol';
 
 contract BinTest is DSTest {
     GemFab gemFab;
-    VoxFab voxFab;
-    TubFab tubFab;
+    TargetPriceFeedDeployer targetPriceFeedDeployer;
+    CDPManagerDeployer cdpManagerDeployer;
     TapFab tapFab;
     TopFab topFab;
     MomFab momFab;
@@ -24,15 +24,15 @@ contract BinTest is DSTest {
 
     function setUp() public {
         gemFab = new GemFab();
-        voxFab = new VoxFab();
-        tubFab = new TubFab();
+        targetPriceFeedDeployer = new TargetPriceFeedDeployer();
+        cdpManagerDeployer = new CDPManagerDeployer();
         tapFab = new TapFab();
         topFab = new TopFab();
         momFab = new MomFab();
         dadFab = new DadFab();
 
         uint startGas = gasleft();
-        daiFab = new DaiFab(gemFab, voxFab, tubFab, tapFab, topFab, momFab, dadFab);
+        daiFab = new DaiFab(gemFab, targetPriceFeedDeployer, cdpManagerDeployer, tapFab, topFab, momFab, dadFab);
         uint endGas = gasleft();
         emit log_named_uint('Deploy DaiFab', startGas - endGas);
 

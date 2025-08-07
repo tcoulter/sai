@@ -1,4 +1,4 @@
-/// tub.sol -- simplified CDP engine (baby brother of `vat')
+/// CDPManager.sol -- simplified CDP engine (baby brother of `vat')
 
 // Copyright (C) 2017  Nikolai Mushegian <nikolai@dapphub.com>
 // Copyright (C) 2017  Daniel Brockman <daniel@dapphub.com>
@@ -25,35 +25,34 @@ import "./ds-value/value.sol";
 
 import "../node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+import "./TargetPriceFeed.sol";
 
-import "./vox.sol";
-
-contract SaiTubEvents {
-    event LogNewCup(address indexed lad, bytes32 cup);
+contract CDPManagerEvents {
+    event LogNewCDP(address indexed owner, bytes32 cdp);
 }
 
-contract SaiTub is DSThing, SaiTubEvents {
+contract CDPManager is DSThing, CDPManagerEvents {
     DSToken  public  sai;  // Stablecoin
     DSToken  public  sin;  // Debt (negative sai)
 
     DSToken  public  skr;  // Abstracted collateral
-    IERC20    public  gem;  // Underlying collateral
+    IERC20   public  gem;  // Underlying collateral
 
     DSToken  public  gov;  // Governance token
 
-    SaiVox   public  vox;  // Target price feed
-    DSValue  public  pip;  // Reference price feed
-    DSValue  public  pep;  // Governance price feed
+    TargetPriceFeed  public  targetPriceFeed;  // Target price feed
+    DSValue             public  pip;  // Reference price feed
+    DSValue             public  pep;  // Governance price feed
 
     address  public  tap;  // Liquidator
     address  public  pit;  // Governance Vault
 
-    uint256  public  axe;  // Liquidation penalty
-    uint256  public  cap;  // Debt ceiling
-    uint256  public  mat;  // Liquidation ratio
-    uint256  public  tax;  // Stability fee
-    uint256  public  fee;  // Governance fee
-    uint256  public  gap;  // Join-Exit Spread
+    uint256  public  liquidationPenalty;  // Liquidation penalty
+    uint256  public  debtCeiling;  // Debt ceiling
+    uint256  public  liquidationRatio;  // Liquidation ratio
+    uint256  public  stabilityFee;  // Stability fee
+    uint256  public  governanceFee;  // Governance fee
+    uint256  public  joinExitSpread;  // Join-Exit Spread
 
     bool     public  off;  // Cage flag
     bool     public  out;  // Post cage exit
@@ -61,31 +60,31 @@ contract SaiTub is DSThing, SaiTubEvents {
     uint256  public  fit;  // REF per SKR (just before settlement)
 
     uint256  public  rho;  // Time of last drip
-    uint256         _chi;  // Accumulated Tax Rates
+    uint256         _accumulatedStabilityFeeRate;  // Accumulated Tax Rates
     uint256         _rhi;  // Accumulated Tax + Fee Rates
     uint256  public  rum;  // Total normalised debt
 
-    uint256                   public  cupi;
-    mapping (bytes32 => Cup)  public  cups;
+    uint256                   public  totalCDPs;
+    mapping (bytes32 => CDP)  public  cdps;
 
-    struct Cup {
-        address  lad;      // CDP owner
+    struct CDP {
+        address  owner;      // CDP owner
         uint256  ink;      // Locked collateral (in SKR)
-        uint256  art;      // Outstanding normalised debt (tax only)
+        uint256  art;      // Outstanding normalised debt (stabilityFee only)
         uint256  ire;      // Outstanding normalised debt
     }
 
-    function lad(bytes32 cup) public view returns (address) {
-        return cups[cup].lad;
+    function lad(bytes32 cdp) public view returns (address) {
+        return cdps[cdp].owner;
     }
-    function ink(bytes32 cup) public view returns (uint) {
-        return cups[cup].ink;
+    function ink(bytes32 cdp) public view returns (uint) {
+        return cdps[cdp].ink;
     }
-    function tab(bytes32 cup) public returns (uint) {
-        return rmul(cups[cup].art, chi());
+    function tab(bytes32 cdp) public returns (uint) {
+        return rmul(cdps[cdp].art, chi());
     }
-    function rap(bytes32 cup) public returns (uint) {
-        return sub(rmul(cups[cup].ire, rhi()), tab(cup));
+    function rap(bytes32 cdp) public returns (uint) {
+        return sub(rmul(cdps[cdp].ire, rhi()), tab(cdp));
     }
 
     // Total CDP Debt
@@ -111,7 +110,7 @@ contract SaiTub is DSThing, SaiTubEvents {
         DSToken  gov_,
         DSValue  pip_,
         DSValue  pep_,
-        SaiVox   vox_,
+        TargetPriceFeed   targetPriceFeed_,
         address  pit_
     ) {
         gem = gem_;
@@ -125,15 +124,15 @@ contract SaiTub is DSThing, SaiTubEvents {
 
         pip = pip_;
         pep = pep_;
-        vox = vox_;
+        targetPriceFeed = targetPriceFeed_;
 
-        axe = RAY;
-        mat = RAY;
-        tax = RAY;
-        fee = RAY;
-        gap = WAD;
+        liquidationPenalty = RAY;
+        liquidationRatio = RAY;
+        stabilityFee = RAY;
+        governanceFee = RAY;
+        joinExitSpread = WAD;
 
-        _chi = RAY;
+        _accumulatedStabilityFeeRate = RAY;
         _rhi = RAY;
 
         rho = era();
@@ -145,13 +144,14 @@ contract SaiTub is DSThing, SaiTubEvents {
 
     //--Risk-parameter-config-------------------------------------------
 
+    // TODO: Clean up remnants of old variable names.
     function mold(bytes32 param, uint val) public note auth {
-        if      (param == 'cap') cap = val;
-        else if (param == 'mat') { require(val >= RAY); mat = val; }
-        else if (param == 'tax') { require(val >= RAY); drip(); tax = val; }
-        else if (param == 'fee') { require(val >= RAY); drip(); fee = val; }
-        else if (param == 'axe') { require(val >= RAY); axe = val; }
-        else if (param == 'gap') { require(val >= WAD); gap = val; }
+        if      (param == 'cap') debtCeiling = val;
+        else if (param == 'mat') { require(val >= RAY); liquidationRatio = val; }
+        else if (param == 'tax') { require(val >= RAY); drip(); stabilityFee = val; }
+        else if (param == 'fee') { require(val >= RAY); drip(); governanceFee = val; }
+        else if (param == 'axe') { require(val >= RAY); liquidationPenalty = val; }
+        else if (param == 'gap') { require(val >= WAD); joinExitSpread = val; }
         else return;
     }
 
@@ -163,8 +163,8 @@ contract SaiTub is DSThing, SaiTubEvents {
     function setPep(DSValue pep_) public note auth {
         pep = pep_;
     }
-    function setVox(SaiVox vox_) public note auth {
-        vox = vox_;
+    function setTargetPriceFeed(TargetPriceFeed targetPriceFeed_) public note auth {
+        targetPriceFeed = targetPriceFeed_;
     }
 
     //--Tap-setter------------------------------------------------------
@@ -182,11 +182,11 @@ contract SaiTub is DSThing, SaiTubEvents {
     }
     // Join price (gem per skr)
     function ask(uint wad) public view returns (uint) {
-        return rmul(wad, wmul(per(), gap));
+        return rmul(wad, wmul(per(), joinExitSpread));
     }
     // Exit price (gem per skr)
     function bid(uint wad) public view returns (uint) {
-        return rmul(wad, wmul(per(), sub(2 * WAD, gap)));
+        return rmul(wad, wmul(per(), sub(2 * WAD, joinExitSpread)));
     }
     function join(uint wad) public note {
         require(!off);
@@ -205,7 +205,7 @@ contract SaiTub is DSThing, SaiTubEvents {
     // Accumulated Rates
     function chi() public returns (uint) {
         drip();
-        return _chi;
+        return _accumulatedStabilityFeeRate;
     }
     function rhi() public returns (uint) {
         drip();
@@ -221,15 +221,15 @@ contract SaiTub is DSThing, SaiTubEvents {
 
         uint inc = RAY;
 
-        if (tax != RAY) {  // optimised
-            uint _chi_ = _chi;
-            inc = rpow(tax, age);
-            _chi = rmul(_chi, inc);
-            sai.mint(tap, rmul(sub(_chi, _chi_), rum));
+        if (stabilityFee != RAY) {  // optimised
+            uint _accumulatedStabilityFeeRate_ = _accumulatedStabilityFeeRate;
+            inc = rpow(stabilityFee, age);
+            _accumulatedStabilityFeeRate = rmul(_accumulatedStabilityFeeRate, inc);
+            sai.mint(tap, rmul(sub(_accumulatedStabilityFeeRate, _accumulatedStabilityFeeRate_), rum));
         }
 
         // optimised
-        if (fee != RAY) inc = rmul(inc, rpow(fee, age));
+        if (governanceFee != RAY) inc = rmul(inc, rpow(governanceFee, age));
         if (inc != RAY) _rhi = rmul(_rhi, inc);
     }
 
@@ -240,100 +240,100 @@ contract SaiTub is DSThing, SaiTubEvents {
     function tag() public view returns (uint wad) {
         return off ? fit : wmul(per(), uint(pip.read()));
     }
-    // Returns true if cup is well-collateralized
-    function safe(bytes32 cup) public returns (bool) {
-        uint pro = rmul(tag(), ink(cup));
-        uint con = rmul(vox.par(), tab(cup));
-        uint min = rmul(con, mat);
+    // Returns true if cdp defined by cdp is well-collateralized
+    function safe(bytes32 cdp) public returns (bool) {
+        uint pro = rmul(tag(), ink(cdp));
+        uint con = rmul(targetPriceFeed.targetPrice(), tab(cdp));
+        uint min = rmul(con, liquidationRatio);
         return pro >= min;
     }
 
 
     //--CDP-operations--------------------------------------------------
 
-    function open() public note returns (bytes32 cup) {
+    function open() public note returns (bytes32 cdp) {
         require(!off);
-        cupi = add(cupi, 1);
-        cup = bytes32(cupi);
-        cups[cup].lad = msg.sender;
-        emit LogNewCup(msg.sender, cup);
+        totalCDPs = add(totalCDPs, 1);
+        cdp = bytes32(totalCDPs);
+        cdps[cdp].owner = msg.sender;
+        emit LogNewCDP(msg.sender, cdp);
     }
-    function give(bytes32 cup, address guy) public note {
-        require(msg.sender == cups[cup].lad);
+    function give(bytes32 cdp, address guy) public note {
+        require(msg.sender == cdps[cdp].owner);
         require(guy != address(0));
-        cups[cup].lad = guy;
+        cdps[cdp].owner = guy;
     }
 
-    function lock(bytes32 cup, uint wad) public note {
+    function lock(bytes32 cdp, uint wad) public note {
         require(!off);
-        cups[cup].ink = add(cups[cup].ink, wad);
+        cdps[cdp].ink = add(cdps[cdp].ink, wad);
         skr.pull(msg.sender, wad);
-        require(cups[cup].ink == 0 || cups[cup].ink > 0.005 ether);
+        require(cdps[cdp].ink == 0 || cdps[cdp].ink > 0.005 ether);
     }
-    function free(bytes32 cup, uint wad) public note {
-        require(msg.sender == cups[cup].lad);
-        cups[cup].ink = sub(cups[cup].ink, wad);
+    function free(bytes32 cdp, uint wad) public note {
+        require(msg.sender == cdps[cdp].owner);
+        cdps[cdp].ink = sub(cdps[cdp].ink, wad);
         skr.push(msg.sender, wad);
-        require(safe(cup));
-        require(cups[cup].ink == 0 || cups[cup].ink > 0.005 ether);
+        require(safe(cdp));
+        require(cdps[cdp].ink == 0 || cdps[cdp].ink > 0.005 ether);
     }
 
-    function draw(bytes32 cup, uint wad) public note {
+    function draw(bytes32 cdp, uint wad) public note {
         require(!off);
-        require(msg.sender == cups[cup].lad);
+        require(msg.sender == cdps[cdp].owner);
         require(rdiv(wad, chi()) > 0);
 
-        cups[cup].art = add(cups[cup].art, rdiv(wad, chi()));
+        cdps[cdp].art = add(cdps[cdp].art, rdiv(wad, chi()));
         rum = add(rum, rdiv(wad, chi()));
 
-        cups[cup].ire = add(cups[cup].ire, rdiv(wad, rhi()));
-        sai.mint(cups[cup].lad, wad);
+        cdps[cdp].ire = add(cdps[cdp].ire, rdiv(wad, rhi()));
+        sai.mint(cdps[cdp].owner, wad);
 
-        require(safe(cup));
-        require(sai.totalSupply() <= cap);
+        require(safe(cdp));
+        require(sai.totalSupply() <= debtCeiling);
     }
-    function wipe(bytes32 cup, uint wad) public note {
+    function wipe(bytes32 cdp, uint wad) public note {
         require(!off);
 
-        uint owe = rmul(wad, rdiv(rap(cup), tab(cup)));
+        uint owe = rmul(wad, rdiv(rap(cdp), tab(cdp)));
 
-        cups[cup].art = sub(cups[cup].art, rdiv(wad, chi()));
+        cdps[cdp].art = sub(cdps[cdp].art, rdiv(wad, chi()));
         rum = sub(rum, rdiv(wad, chi()));
 
-        cups[cup].ire = sub(cups[cup].ire, rdiv(add(wad, owe), rhi()));
+        cdps[cdp].ire = sub(cdps[cdp].ire, rdiv(add(wad, owe), rhi()));
         sai.burn(msg.sender, wad);
 
         (bytes32 val, bool ok) = pep.peek();
         if (ok && val != 0) gov.move(msg.sender, pit, wdiv(owe, uint(val)));
     }
 
-    function shut(bytes32 cup) public note {
+    function shut(bytes32 cdp) public note {
         require(!off);
-        require(msg.sender == cups[cup].lad);
-        if (tab(cup) != 0) wipe(cup, tab(cup));
-        if (ink(cup) != 0) free(cup, ink(cup));
-        delete cups[cup];
+        require(msg.sender == cdps[cdp].owner);
+        if (tab(cdp) != 0) wipe(cdp, tab(cdp));
+        if (ink(cdp) != 0) free(cdp, ink(cdp));
+        delete cdps[cdp];
     }
 
-    function bite(bytes32 cup) public note {
-        require(!safe(cup) || off);
+    function bite(bytes32 cdp) public note {
+        require(!safe(cdp) || off);
 
         // Take on all of the debt, except unpaid fees
-        uint rue = tab(cup);
+        uint rue = tab(cdp);
         sin.mint(tap, rue);
-        rum = sub(rum, cups[cup].art);
-        cups[cup].art = 0;
-        cups[cup].ire = 0;
+        rum = sub(rum, cdps[cdp].art);
+        cdps[cdp].art = 0;
+        cdps[cdp].ire = 0;
 
         // Amount owed in SKR, including liquidation penalty
-        uint owe = rdiv(rmul(rmul(rue, axe), vox.par()), tag());
+        uint owe = rdiv(rmul(rmul(rue, liquidationPenalty), targetPriceFeed.targetPrice()), tag());
 
-        if (owe > cups[cup].ink) {
-            owe = cups[cup].ink;
+        if (owe > cdps[cdp].ink) {
+            owe = cdps[cdp].ink;
         }
 
         skr.push(tap, owe);
-        cups[cup].ink = sub(cups[cup].ink, owe);
+        cdps[cdp].ink = sub(cdps[cdp].ink, owe);
     }
 
     //------------------------------------------------------------------
@@ -341,8 +341,8 @@ contract SaiTub is DSThing, SaiTubEvents {
     function cage(uint fit_, uint jam) public note auth {
         require(!off && fit_ != 0);
         off = true;
-        axe = RAY;
-        gap = WAD;
+        liquidationPenalty = RAY;
+        joinExitSpread = WAD;
         fit = fit_;         // ref per skr
         require(gem.transfer(tap, jam));
     }
